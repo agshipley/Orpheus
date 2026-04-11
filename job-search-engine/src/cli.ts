@@ -11,18 +11,41 @@
  *   config             Show/edit configuration
  */
 
+import React from "react";
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
 import Table from "cli-table3";
-import { readFileSync, existsSync, mkdirSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { parse as parseYaml } from "yaml";
+import { render } from "ink";
 import { Conductor } from "./conductor/conductor.js";
 import { ResumeTailor, CoverLetterGenerator, EmailDrafter } from "./content/index.js";
 import { getTracer, getMetrics, getDecisionLog } from "./observability/index.js";
 import { JobStore } from "./storage/job_store.js";
 import { ConfigSchema } from "./types.js";
 import type { Config, JobListing } from "./types.js";
+import { Dashboard } from "./ui/dashboard.js";
+import type { DashboardState } from "./ui/dashboard.js";
+
+const DASHBOARD_STATE_FILE = "./data/dashboard-state.json";
+
+// ─── .env Loading ────────────────────────────────────────────────
+
+if (existsSync(".env")) {
+  const envLines = readFileSync(".env", "utf-8").split("\n");
+  for (const line of envLines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+    const eq = trimmed.indexOf("=");
+    if (eq === -1) continue;
+    const key = trimmed.slice(0, eq).trim();
+    const val = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, "");
+    if (key && process.env[key] === undefined) {
+      process.env[key] = val;
+    }
+  }
+}
 
 // ─── Config Loading ───────────────────────────────────────────────
 
@@ -77,10 +100,76 @@ program
   .action(async (query: string, options) => {
     const config = loadConfig();
     const conductor = new Conductor(config);
+
+    // ── Trace printer ─────────────────────────────────────────────
+    // Subscribes to span events and prints a live tree to stderr so
+    // you can follow the pipeline: CLI → Conductor → Agent → MCP.
+    const tracer = getTracer();
+    const spanDepths = new Map<string, number>();
+
+    tracer.on("span:start", (span) => {
+      const depth = span.parentSpanId
+        ? (spanDepths.get(span.parentSpanId) ?? 0) + 1
+        : 0;
+      spanDepths.set(span.spanId, depth);
+      const indent = "  ".repeat(depth);
+      process.stderr.write(`${indent}▸ ${span.name}\n`);
+    });
+
+    tracer.on("span:end", (span) => {
+      const depth = spanDepths.get(span.spanId) ?? 0;
+      const indent = "  ".repeat(depth);
+      const dur = `${span.durationMs ?? "?"}ms`.padStart(8);
+      const icon = span.status === "error" ? "✗" : "✓";
+      const errMsg =
+        span.status === "error"
+          ? `  [${span.attributes["error.message"] ?? "error"}]`
+          : "";
+      // Print a subset of useful attributes inline
+      const interesting = [
+        "query.raw",
+        "results.count",
+        "jobs.before_dedup",
+        "jobs.after_dedup",
+        "jobs.ranked",
+        "agents.count",
+        "tool.name",
+        "source",
+      ];
+      const attrStr = interesting
+        .filter((k) => span.attributes[k] !== undefined)
+        .map((k) => `${k.split(".").pop()}=${span.attributes[k]}`)
+        .join(" ");
+      process.stderr.write(
+        `${indent}${icon} ${span.name} ${dur}${attrStr ? `  ${attrStr}` : ""}${errMsg}\n`
+      );
+      spanDepths.delete(span.spanId);
+    });
+    // ─────────────────────────────────────────────────────────────
+
     const spinner = ora("Searching across job boards...").start();
 
     try {
       const result = await conductor.search(query);
+
+      // Persist state for the dashboard command (separate process).
+      // Written unconditionally after every search.
+      try {
+        ensureDataDir();
+        const rootTrace = getTracer().getTrace(result.traceId) ?? null;
+        const dashState: DashboardState = {
+          savedAt: new Date().toISOString(),
+          searchQuery: query,
+          stats: result.stats,
+          trace: rootTrace,
+          metricsSnapshot: getMetrics().snapshot(),
+          costSummary: getDecisionLog().getCostSummary(),
+          costEntries: getDecisionLog().toJSON().costs,
+        };
+        writeFileSync(DASHBOARD_STATE_FILE, JSON.stringify(dashState, null, 2));
+      } catch {
+        // Non-fatal — don't break the search output if state persistence fails
+      }
 
       spinner.succeed(
         chalk.green(
@@ -234,49 +323,27 @@ program
 
 program
   .command("dashboard")
-  .description("Show the observability dashboard")
+  .description("Show the observability dashboard (Ink TUI)")
   .action(async () => {
-    const metrics = getMetrics();
-    const tracer = getTracer();
-    const decisionLog = getDecisionLog();
-
-    console.log(chalk.bold("\n📊 Orpheus Dashboard\n"));
-
-    // Metrics
-    console.log(metrics.toConsole());
-
-    // Recent traces
-    const traces = tracer.getTraces(5);
-    if (traces.length > 0) {
-      console.log(chalk.bold("Recent Traces:"));
-      for (const trace of traces) {
-        console.log(
-          `  ${chalk.cyan(trace.traceId)} | ${trace.name} | ` +
-            `${trace.durationMs ?? "?"}ms | ${trace.status}`
-        );
-      }
+    if (!existsSync(DASHBOARD_STATE_FILE)) {
+      console.log(chalk.yellow("No dashboard data yet."));
+      console.log(chalk.dim("  Run a search first:  orpheus search \"your query\""));
+      return;
     }
 
-    // Recent decisions
-    const decisions = decisionLog.getAll(5);
-    if (decisions.length > 0) {
-      console.log(chalk.bold("\nRecent Decisions:"));
-      for (const decision of decisions) {
-        console.log(
-          `  ${chalk.yellow(decision.component)}: ${decision.decision}`
-        );
-        console.log(chalk.dim(`    ${decision.reasoning}`));
-      }
-    }
+    const raw = readFileSync(DASHBOARD_STATE_FILE, "utf-8");
+    const state = JSON.parse(raw) as DashboardState;
 
-    // Cost summary
-    const costSummary = decisionLog.getCostSummary();
-    if (costSummary.entryCount > 0) {
-      console.log(chalk.bold("\nCost Summary:"));
-      console.log(`  Total: $${costSummary.totalUsd.toFixed(4)}`);
-      for (const [model, cost] of Object.entries(costSummary.byModel)) {
-        console.log(`  ${model}: $${cost.toFixed(4)}`);
-      }
+    const instance = render(
+      React.createElement(Dashboard, { state })
+    );
+    // In a real TTY the user presses q to quit via useInput.
+    // In non-interactive contexts (piped stdin, CI) raw mode is unavailable
+    // so we just render once and exit immediately.
+    if (process.stdin.isTTY) {
+      await instance.waitUntilExit();
+    } else {
+      instance.unmount();
     }
   });
 
