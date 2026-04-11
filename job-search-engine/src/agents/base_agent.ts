@@ -62,11 +62,16 @@ export abstract class BaseAgent {
   /**
    * Execute a search across this agent's source.
    * Automatically wrapped in tracing and metrics.
+   * Auto-connects if not already connected.
    */
   async executeSearch(
     query: SearchQuery,
     parentSpan?: SpanBuilder
   ): Promise<AgentResult> {
+    if (!this.connected) {
+      await this.connect();
+    }
+
     const span = parentSpan
       ? parentSpan.startChild(`agent.${this.config.source}.search`)
       : this.tracer.startTrace(`agent.${this.config.source}.search`);
@@ -127,6 +132,9 @@ export abstract class BaseAgent {
     this.metrics.increment("orpheus_tool_calls_total", {
       source: this.config.source,
     }, toolCallCount);
+
+    // Disconnect after each search — agents are created fresh per conductor call
+    await this.disconnect();
 
     return {
       source: this.config.source,

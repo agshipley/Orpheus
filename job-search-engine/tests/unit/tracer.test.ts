@@ -15,7 +15,7 @@ describe("Tracer", () => {
 
   it("creates a trace with a root span", () => {
     const span = tracer.startTrace("test.operation");
-    expect(span.traceId).toMatch(/^arc_/);
+    expect(span.traceId).toMatch(/^orp_/);
     expect(span.spanId).toBeTruthy();
 
     const completed = span.end();

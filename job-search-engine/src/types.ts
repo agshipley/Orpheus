@@ -255,7 +255,7 @@ export const ConfigSchema = z.object({
   agents: z.object({
     concurrency: z.number().default(5),
     timeoutMs: z.number().default(30000),
-    sources: z.array(z.string()).default(["linkedin", "indeed", "github"]),
+    sources: z.array(z.string()).default(["ycombinator"]),
   }),
   observability: z.object({
     traceSamplingRate: z.number().min(0).max(1).default(1.0),

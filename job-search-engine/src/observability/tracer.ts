@@ -174,7 +174,7 @@ export class Tracer {
       // Return a no-op span for unsampled traces
       return this.createNoOpSpan(name);
     }
-    const traceId = `arc_${nanoid(16)}`;
+    const traceId = `orp_${nanoid(16)}`;
     return new SpanBuilder(name, traceId, this.emitter, this.store);
   }
 
@@ -265,7 +265,7 @@ export class Tracer {
 
   private createNoOpSpan(name: string): SpanBuilder {
     // Even for no-op, we still track minimally for cost accounting
-    const traceId = `arc_noop_${nanoid(8)}`;
+    const traceId = `orp_noop_${nanoid(8)}`;
     return new SpanBuilder(name, traceId, this.emitter, this.store);
   }
 }

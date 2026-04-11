@@ -6,11 +6,13 @@ export { BaseAgent } from "./base_agent.js";
 export { LinkedInAgent } from "./linkedin_agent.js";
 export { IndeedAgent } from "./indeed_agent.js";
 export { GitHubAgent } from "./github_agent.js";
+export { HNAgent } from "./hn_agent.js";
 
 import { BaseAgent } from "./base_agent.js";
 import { LinkedInAgent } from "./linkedin_agent.js";
 import { IndeedAgent } from "./indeed_agent.js";
 import { GitHubAgent } from "./github_agent.js";
+import { HNAgent } from "./hn_agent.js";
 import type { AgentSource, AgentConfig } from "../types.js";
 
 const AGENT_REGISTRY: Record<
@@ -20,7 +22,7 @@ const AGENT_REGISTRY: Record<
   linkedin: LinkedInAgent,
   indeed: IndeedAgent,
   github: GitHubAgent,
-  ycombinator: GitHubAgent, // Reuse GitHub agent for HN/YC boards
+  ycombinator: HNAgent,
   custom: GitHubAgent,
 };
 

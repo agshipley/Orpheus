@@ -17,6 +17,7 @@ import pLimit from "p-limit";
 import { nanoid } from "nanoid";
 import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js";
 import { createAgentPool } from "../agents/index.js";
+import type { BaseAgent } from "../agents/base_agent.js";
 import type {
   Config,
   SearchQuery,
@@ -24,6 +25,8 @@ import type {
   AgentResult,
   AgentSource,
 } from "../types.js";
+
+export type AgentFactory = (sources: AgentSource[]) => BaseAgent[];
 
 export interface SearchResult {
   traceId: string;
@@ -44,13 +47,15 @@ export interface SearchResult {
 export class Conductor {
   private client: Anthropic;
   private config: Config;
+  private agentFactory: AgentFactory;
   private tracer = getTracer();
   private metrics = getMetrics();
   private decisionLog = getDecisionLog();
 
-  constructor(config: Config) {
+  constructor(config: Config, agentFactory: AgentFactory = createAgentPool) {
     this.config = config;
     this.client = new Anthropic();
+    this.agentFactory = agentFactory;
   }
 
   /**
@@ -236,7 +241,7 @@ Schema:
     parentSpan: ReturnType<typeof this.tracer.startTrace>
   ): Promise<AgentResult[]> {
     const limit = pLimit(this.config.agents.concurrency);
-    const agents = createAgentPool(sources);
+    const agents = this.agentFactory(sources);
 
     const promises = agents.map((agent) =>
       limit(async () => {
