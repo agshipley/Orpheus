@@ -7,15 +7,15 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 # Install root (server) dependencies
-COPY job-search-engine/package.json job-search-engine/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci
 
 # Install client dependencies
-COPY job-search-engine/client/package.json job-search-engine/client/package-lock.json ./client/
+COPY client/package.json client/package-lock.json ./client/
 RUN cd client && npm ci
 
 # Copy source
-COPY job-search-engine/ .
+COPY . .
 
 # Build server (TypeScript → dist/)
 RUN npm run build:server
@@ -32,7 +32,7 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 # Only copy production dependencies
-COPY job-search-engine/package.json job-search-engine/package-lock.json ./
+COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 # Copy compiled output from builder
