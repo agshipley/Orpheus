@@ -11,24 +11,24 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-void">
       {/* Top nav */}
-      <header className="border-b border-border-subtle bg-surface/60 backdrop-blur-sm sticky top-0 z-40">
-        <div className="max-w-screen-xl mx-auto px-4 h-12 flex items-center gap-6">
+      <header className="border-b border-border-subtle bg-void/95 backdrop-blur-sm sticky top-0 z-40">
+        <div className="max-w-screen-xl mx-auto px-6 h-12 flex items-center gap-6">
           {/* Logo */}
           <span className="text-sm font-semibold text-zinc-100 tracking-tight select-none">
             Orpheus
           </span>
           <div className="w-px h-4 bg-border-default" />
           {/* Nav links */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-0.5">
             {NAV.map(({ to, label, icon: Icon }) => (
               <NavLink
                 key={to}
                 to={to}
                 className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-1 rounded-md text-sm transition-colors duration-150 ${
+                  `flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm transition-colors duration-150 ${
                     isActive
                       ? "text-zinc-100 bg-elevated"
-                      : "text-zinc-500 hover:text-zinc-300 hover:bg-elevated/60"
+                      : "text-zinc-500 hover:text-zinc-300 hover:bg-elevated/50"
                   }`
                 }
               >
@@ -46,7 +46,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   );
 }
 
-// ─── Inline icons (no external dep) ──────────────────────────────
+// ─── Inline icons ─────────────────────────────────────────────────
 
 function SearchIcon({ className }: { className?: string }) {
   return (

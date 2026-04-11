@@ -60,7 +60,7 @@ function SpanRow({
   const color =
     span.status === "error"   ? "#ef4444" :
     span.status === "timeout" ? "#f59e0b" :
-                                "#8b5cf6";
+                                "#3B82F6";
 
   return (
     <>
@@ -413,9 +413,9 @@ export default function ObservatoryPage() {
   const components = [...new Set(decisions.map((d) => d.component))];
 
   return (
-    <div className="max-w-screen-xl mx-auto px-6 py-6">
+    <div className="max-w-screen-xl mx-auto px-6 py-8">
       {/* Page header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-sm font-semibold text-zinc-200 font-mono">Observatory</h1>
           {refreshedAt && (
@@ -444,7 +444,7 @@ export default function ObservatoryPage() {
         </button>
       </div>
 
-      <div className="space-y-8">
+      <div className="space-y-10">
         {/* Trace Waterfall */}
         <section>
           <SectionHeader title="Trace Waterfall" />

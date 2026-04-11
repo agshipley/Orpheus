@@ -27,15 +27,15 @@ function JobCard({
   const pct = job.matchScore !== undefined ? Math.round(job.matchScore * 100) : null;
   return (
     <div
-      className={`card p-3 cursor-grab active:cursor-grabbing transition-shadow ${
-        isDragging ? "opacity-50 shadow-xl ring-1 ring-accent/40" : "hover:border-border-strong"
+      className={`card p-4 cursor-grab active:cursor-grabbing transition-all ${
+        isDragging ? "opacity-50 shadow-xl ring-1 ring-accent/30" : "hover:border-border-default"
       }`}
     >
-      <div className="text-sm font-medium text-zinc-200 leading-tight line-clamp-2">
+      <div className="text-sm font-medium text-zinc-100 leading-tight line-clamp-2">
         {job.title}
       </div>
-      <div className="text-xs text-zinc-500 mt-1">{job.company}</div>
-      <div className="flex items-center gap-2 mt-2">
+      <div className="text-xs text-zinc-500 mt-1.5">{job.company}</div>
+      <div className="flex items-center gap-2 mt-3">
         {job.remote && (
           <span className="text-[10px] text-emerald-500 font-medium">Remote</span>
         )}
@@ -81,9 +81,9 @@ function KanbanColumn({
   const { setNodeRef, isOver } = useDroppable({ id: col.id });
 
   return (
-    <div className="flex flex-col min-h-0 w-[240px] flex-shrink-0">
+    <div className="flex flex-col min-h-0 w-[260px] flex-shrink-0">
       {/* Column header */}
-      <div className="flex items-center gap-2 px-1 mb-3">
+      <div className="flex items-center gap-2 px-1 mb-4">
         <span
           className="w-2 h-2 rounded-full"
           style={{ background: col.accent }}
@@ -97,8 +97,8 @@ function KanbanColumn({
       {/* Drop zone */}
       <div
         ref={setNodeRef}
-        className={`flex-1 rounded-lg min-h-[80px] p-2 space-y-2 transition-colors ${
-          isOver ? "bg-accent-dim ring-1 ring-accent/30" : "bg-surface/40"
+        className={`flex-1 rounded-lg min-h-[80px] p-2.5 space-y-2.5 transition-colors ${
+          isOver ? "bg-accent-dim ring-1 ring-accent/20" : "bg-surface/40"
         }`}
       >
         {jobs.length === 0 && !isOver && (
@@ -203,7 +203,7 @@ export default function TrackerPage() {
             onDragStart={onDragStart}
             onDragEnd={onDragEnd}
           >
-            <div className="flex gap-4 px-6 py-5 h-full min-h-0">
+            <div className="flex gap-5 px-6 py-6 h-full min-h-0">
               {KANBAN_COLUMNS.map((col) => (
                 <KanbanColumn key={col.id} col={col} jobs={board[col.id]} />
               ))}

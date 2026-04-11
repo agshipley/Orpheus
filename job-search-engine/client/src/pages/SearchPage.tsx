@@ -13,19 +13,18 @@ function fmtSalary(job: JobListing): string {
 }
 
 function ScoreBadge({ score }: { score?: number }) {
-  if (score === undefined) return <span className="text-zinc-600">—</span>;
+  if (score === undefined) return <span className="text-zinc-700">—</span>;
   const pct = Math.round(score * 100);
   const color =
     pct >= 80 ? "text-emerald-400" :
     pct >= 60 ? "text-amber-400"  :
-               "text-zinc-500";
-  const barW = `${pct}%`;
+               "text-zinc-600";
   return (
-    <span className={`flex items-center gap-1.5 font-mono text-xs ${color}`}>
-      <span className="w-14 h-1 rounded-full bg-elevated overflow-hidden">
-        <span className="block h-full rounded-full bg-current" style={{ width: barW }} />
+    <span className={`flex items-center gap-2 ${color}`}>
+      <span className="w-16 h-1 rounded-full bg-elevated overflow-hidden">
+        <span className="block h-full rounded-full bg-current" style={{ width: `${pct}%` }} />
       </span>
-      {pct}%
+      <span className="font-mono text-xs">{pct}%</span>
     </span>
   );
 }
@@ -47,9 +46,9 @@ function SourceBadge({ source }: { source: string }) {
 
 function StatChip({ label, value }: { label: string; value: string | number }) {
   return (
-    <span className="flex items-center gap-1 text-xs text-zinc-500">
-      <span className="text-zinc-600">{label}</span>
-      <span className="text-zinc-300 font-medium">{value}</span>
+    <span className="flex items-center gap-1.5 text-xs text-zinc-500">
+      <span className="text-zinc-700">{label}</span>
+      <span className="text-zinc-300 font-medium tabular-nums">{value}</span>
     </span>
   );
 }
@@ -63,16 +62,14 @@ export default function SearchPage() {
   const [selected, setSelected] = useState<JobListing | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Focus search on mount
   useEffect(() => { inputRef.current?.focus(); }, []);
 
-  // Stagger-reveal rows after results arrive
   useEffect(() => {
     if (!result) return;
     setVisibleCount(0);
     const timeouts: ReturnType<typeof setTimeout>[] = [];
     result.jobs.forEach((_, i) => {
-      timeouts.push(setTimeout(() => setVisibleCount(i + 1), i * 40));
+      timeouts.push(setTimeout(() => setVisibleCount(i + 1), i * 35));
     });
     return () => timeouts.forEach(clearTimeout);
   }, [result]);
@@ -95,7 +92,7 @@ export default function SearchPage() {
 
   const onKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") handleSearch();
-    if (e.key === "Escape") { setSelected(null); }
+    if (e.key === "Escape") setSelected(null);
   };
 
   const hasResults = result && result.jobs.length > 0;
@@ -103,20 +100,25 @@ export default function SearchPage() {
   return (
     <div className="flex h-[calc(100vh-48px)]">
       {/* Main column */}
-      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${selected ? "mr-[520px]" : ""}`}>
+      <div className={`flex-1 flex flex-col overflow-hidden transition-all duration-300 ${selected ? "mr-[540px]" : ""}`}>
 
         {/* Search header */}
-        <div className={`flex-shrink-0 px-6 transition-all duration-500 ${hasResults ? "pt-6 pb-4" : "pt-32 pb-8"}`}>
-          <div className={`mx-auto transition-all duration-500 ${hasResults ? "max-w-none" : "max-w-xl text-center"}`}>
+        <div className={`flex-shrink-0 px-6 transition-all duration-500 ${hasResults ? "pt-5 pb-4" : "pt-36 pb-10"}`}>
+          <div className={`mx-auto transition-all duration-500 ${hasResults ? "max-w-none" : "max-w-lg text-center"}`}>
             {!hasResults && !loading && !error && (
-              <h1 className="text-2xl font-semibold text-zinc-200 mb-6 tracking-tight">
-                Find your next role
-              </h1>
+              <>
+                <h1 className="text-[28px] font-semibold text-zinc-50 mb-2 tracking-tight leading-snug">
+                  Find your next role
+                </h1>
+                <p className="text-sm text-zinc-500 mb-8">
+                  AI agents search across job boards in parallel
+                </p>
+              </>
             )}
-            <div className="relative flex items-center gap-2">
+            <div className="relative flex items-center gap-3">
               <div className="relative flex-1">
                 <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none"
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none"
                   viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5"
                 >
                   <circle cx="6.5" cy="6.5" r="4" />
@@ -129,14 +131,17 @@ export default function SearchPage() {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={onKeyDown}
                   placeholder="chief of staff, AI startup, remote…"
-                  className="w-full input pl-9 pr-4 py-2.5 text-sm bg-elevated border border-border-default
-                             focus:border-accent/70 focus:ring-1 focus:ring-accent/20 transition-all"
+                  className={`w-full bg-elevated border border-border-default rounded-lg pl-11 pr-4 text-zinc-100
+                             placeholder-zinc-600 transition-all focus:outline-none
+                             focus:border-accent/50 focus:ring-1 focus:ring-accent/15
+                             ${hasResults ? "py-2.5 text-sm" : "py-4 text-[15px]"}`}
                 />
               </div>
               <button
                 onClick={handleSearch}
                 disabled={loading || !query.trim()}
-                className="btn-primary h-[38px] px-4 disabled:opacity-40 disabled:cursor-not-allowed"
+                className={`btn-primary shrink-0 disabled:opacity-40 disabled:cursor-not-allowed
+                           ${hasResults ? "h-[40px] px-4" : "h-[52px] px-6"}`}
               >
                 {loading ? (
                   <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
@@ -151,30 +156,30 @@ export default function SearchPage() {
 
         {/* Status bar */}
         {result && (
-          <div className="flex-shrink-0 flex items-center gap-4 px-6 py-2 border-b border-border-subtle text-xs">
-            <StatChip label="found" value={result.stats.afterDedup} />
+          <div className="flex-shrink-0 flex items-center gap-5 px-6 py-2.5 border-b border-border-subtle text-xs">
+            <StatChip label="results" value={result.stats.afterDedup} />
             <StatChip label="raw" value={result.stats.totalFound} />
             <StatChip label="agents" value={`${result.stats.agentsSucceeded}/${result.stats.agentsQueried}`} />
             <StatChip label="time" value={`${result.stats.durationMs}ms`} />
             <StatChip label="cost" value={`$${result.stats.estimatedCostUsd.toFixed(4)}`} />
             {result.traceId && (
-              <span className="ml-auto font-mono text-zinc-600 text-[10px]">{result.traceId}</span>
+              <span className="ml-auto font-mono text-zinc-700 text-[10px]">{result.traceId}</span>
             )}
           </div>
         )}
 
         {/* Error */}
         {error && (
-          <div className="m-6 px-4 py-3 rounded-lg bg-red-950/40 border border-red-900/60 text-red-400 text-sm">
+          <div className="m-6 px-4 py-3 rounded-lg bg-red-950/30 border border-red-900/40 text-red-400 text-sm">
             {error}
           </div>
         )}
 
         {/* Loading skeleton */}
         {loading && (
-          <div className="flex-1 px-6 py-4 space-y-2">
+          <div className="flex-1 px-6 py-5 space-y-2">
             {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="h-11 rounded-md bg-surface animate-pulse" style={{ opacity: 1 - i * 0.1 }} />
+              <div key={i} className="h-12 rounded-md bg-surface animate-pulse" style={{ opacity: 1 - i * 0.1 }} />
             ))}
           </div>
         )}
@@ -183,14 +188,14 @@ export default function SearchPage() {
         {hasResults && !loading && (
           <div className="flex-1 overflow-y-auto">
             <table className="w-full text-sm border-collapse">
-              <thead className="sticky top-0 bg-void/95 backdrop-blur-sm z-10">
-                <tr className="text-left border-b border-border-subtle">
-                  <th className="px-6 py-2.5 text-xs font-medium text-zinc-600 tracking-widest uppercase">Role</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-zinc-600 tracking-widest uppercase">Company</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-zinc-600 tracking-widest uppercase hidden md:table-cell">Location</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-zinc-600 tracking-widest uppercase hidden lg:table-cell">Salary</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-zinc-600 tracking-widest uppercase">Score</th>
-                  <th className="px-4 py-2.5 text-xs font-medium text-zinc-600 tracking-widest uppercase hidden sm:table-cell">Source</th>
+              <thead className="sticky top-0 bg-void/98 backdrop-blur-sm z-10">
+                <tr className="border-b border-border-subtle">
+                  <th className="px-6 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase">Role</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase">Company</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase hidden md:table-cell">Location</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase hidden lg:table-cell">Salary</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase">Score</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widests uppercase hidden sm:table-cell">Src</th>
                 </tr>
               </thead>
               <tbody>
@@ -198,24 +203,24 @@ export default function SearchPage() {
                   <tr
                     key={job.id}
                     onClick={() => setSelected(selected?.id === job.id ? null : job)}
-                    className={`border-b border-border-subtle/50 cursor-pointer transition-colors duration-100 row-reveal ${
+                    className={`border-b border-border-subtle/40 cursor-pointer transition-colors duration-100 row-reveal ${
                       selected?.id === job.id
                         ? "bg-accent-dim border-l-2 border-l-accent"
-                        : "hover:bg-elevated/60"
+                        : "hover:bg-elevated/50"
                     } ${i >= visibleCount ? "opacity-0" : ""}`}
-                    style={{ animationDelay: `${i * 30}ms` }}
+                    style={{ animationDelay: `${i * 28}ms` }}
                   >
-                    <td className="px-6 py-3">
-                      <div className="font-medium text-zinc-200 leading-tight">{job.title}</div>
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-zinc-100 leading-tight">{job.title}</div>
                       {job.remote && (
-                        <span className="text-[10px] text-emerald-500 font-medium">Remote</span>
+                        <span className="text-[10px] text-emerald-500 font-medium mt-0.5 block">Remote</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-zinc-400">{job.company}</td>
-                    <td className="px-4 py-3 text-zinc-500 hidden md:table-cell">{job.location || "—"}</td>
-                    <td className="px-4 py-3 text-zinc-400 font-mono text-xs hidden lg:table-cell">{fmtSalary(job)}</td>
-                    <td className="px-4 py-3"><ScoreBadge score={job.matchScore} /></td>
-                    <td className="px-4 py-3 hidden sm:table-cell"><SourceBadge source={job.source} /></td>
+                    <td className="px-4 py-4 text-zinc-400">{job.company}</td>
+                    <td className="px-4 py-4 text-zinc-500 hidden md:table-cell">{job.location || "—"}</td>
+                    <td className="px-4 py-4 text-zinc-500 font-mono text-xs hidden lg:table-cell">{fmtSalary(job)}</td>
+                    <td className="px-4 py-4"><ScoreBadge score={job.matchScore} /></td>
+                    <td className="px-4 py-4 hidden sm:table-cell"><SourceBadge source={job.source} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -225,7 +230,7 @@ export default function SearchPage() {
 
         {/* Empty state */}
         {!loading && !error && !result && (
-          <div className="flex-1 flex items-start justify-center px-6 pt-4">
+          <div className="flex-1 flex items-start justify-center px-6 pt-2">
             <p className="text-zinc-600 text-sm text-center max-w-xs">
               Search across job boards. Results stream in as agents respond.
             </p>
@@ -234,17 +239,14 @@ export default function SearchPage() {
 
         {result && result.jobs.length === 0 && !loading && (
           <div className="flex-1 flex items-center justify-center">
-            <p className="text-zinc-600 text-sm">No results found for "{query}"</p>
+            <p className="text-zinc-600 text-sm">No results for "{query}"</p>
           </div>
         )}
       </div>
 
       {/* Detail panel */}
       {selected && (
-        <JobDetailPanel
-          job={selected}
-          onClose={() => setSelected(null)}
-        />
+        <JobDetailPanel job={selected} onClose={() => setSelected(null)} />
       )}
     </div>
   );
