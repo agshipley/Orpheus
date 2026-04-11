@@ -23,9 +23,14 @@ import type {
   JobListing,
   AgentResult,
   AgentSource,
+  AgentConfig,
+  UserProfile,
 } from "../types.js";
 
-export type AgentFactory = (sources: AgentSource[]) => BaseAgent[];
+export type AgentFactory = (
+  sources: AgentSource[],
+  config?: Partial<AgentConfig>
+) => BaseAgent[];
 
 export interface SearchResult {
   traceId: string;
@@ -91,7 +96,7 @@ export class Conductor {
         async (span) => {
           const sources = this.config.agents.sources as AgentSource[];
           span.setAttribute("agents.count", sources.length);
-          return this.fanOutSearch(query, sources, span);
+          return this.fanOutSearch(query, sources, span, this.config.profile);
         }
       );
 
@@ -237,10 +242,11 @@ Schema:
   private async fanOutSearch(
     query: SearchQuery,
     sources: AgentSource[],
-    parentSpan: ReturnType<typeof this.tracer.startTrace>
+    parentSpan: ReturnType<typeof this.tracer.startTrace>,
+    profile?: UserProfile
   ): Promise<AgentResult[]> {
     const limit = pLimit(this.config.agents.concurrency);
-    const agents = this.agentFactory(sources);
+    const agents = this.agentFactory(sources, profile ? { profile } : undefined);
 
     const promises = agents.map((agent) =>
       limit(async () => {
@@ -422,17 +428,34 @@ Schema:
   }
 
   private heuristicRank(jobs: JobListing[], query: SearchQuery): JobListing[] {
+    const profile = this.config.profile;
     return [...jobs].sort((a, b) => {
-      const scoreA = this.heuristicScore(a, query);
-      const scoreB = this.heuristicScore(b, query);
+      const scoreA = this.heuristicScore(a, query, profile);
+      const scoreB = this.heuristicScore(b, query, profile);
       return scoreB - scoreA;
     });
   }
 
-  private heuristicScore(job: JobListing, query: SearchQuery): number {
+  private heuristicScore(
+    job: JobListing,
+    query: SearchQuery,
+    profile: UserProfile
+  ): number {
     let score = 0;
 
-    // Skill match
+    // ── Dominant signal: profile target title match (+50) ──────────
+    // Any phrase from targetTitles found in the job title → strong boost.
+    // This is the highest-weighted single signal so profile-aligned roles
+    // always surface above keyword-matched-but-wrong-level results.
+    if (profile.targetTitles.length > 0) {
+      const jobTitleLower = job.title.toLowerCase();
+      const matches = profile.targetTitles.some((t) =>
+        jobTitleLower.includes(t.toLowerCase())
+      );
+      if (matches) score += 50;
+    }
+
+    // ── Skill match (up to 40) ─────────────────────────────────────
     if (query.skills.length > 0) {
       const descLower = job.description.toLowerCase();
       const matchCount = query.skills.filter((s) =>
@@ -441,7 +464,7 @@ Schema:
       score += (matchCount / query.skills.length) * 40;
     }
 
-    // Title match
+    // ── Query title match (up to 30) ──────────────────────────────
     if (query.title) {
       const titleWords = query.title.toLowerCase().split(/\s+/);
       const jobTitleLower = job.title.toLowerCase();
@@ -451,7 +474,7 @@ Schema:
       score += (titleMatch / titleWords.length) * 30;
     }
 
-    // Salary match
+    // ── Salary match ───────────────────────────────────────────────
     if (query.salaryMin && job.salary?.min) {
       if (job.salary.min >= query.salaryMin) {
         score += 15;
@@ -460,12 +483,12 @@ Schema:
       }
     }
 
-    // Remote preference
+    // ── Remote preference ─────────────────────────────────────────
     if (query.remote && job.remote) {
       score += 10;
     }
 
-    // Recency bonus
+    // ── Recency bonus ──────────────────────────────────────────────
     if (job.postedAt) {
       const daysAgo =
         (Date.now() - new Date(job.postedAt).getTime()) / (1000 * 60 * 60 * 24);

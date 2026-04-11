@@ -153,6 +153,12 @@ export class HNAgent extends BaseAgent {
     // 4. Build keyword list from the query
     const keywords = this.buildKeywords(query);
 
+    // Determine if profile indicates a non-engineering / ops / leadership focus
+    const profile = this.config.profile;
+    const skipPureEngineering = profile
+      ? this.isNonEngineeringProfile(profile)
+      : false;
+
     // 5. Parse, filter, cap at maxResults
     const jobs: JobListing[] = [];
 
@@ -175,7 +181,12 @@ export class HNAgent extends BaseAgent {
       }
 
       const job = this.parseComment(comment, text);
-      if (job) jobs.push(job);
+      if (!job) continue;
+
+      // Profile filter: skip pure IC engineering postings when user is non-engineering
+      if (skipPureEngineering && this.isPureEngineeringPost(text)) continue;
+
+      jobs.push(job);
     }
 
     span.addEvent("hn.search.done", { jobs: jobs.length });
@@ -207,6 +218,58 @@ export class HNAgent extends BaseAgent {
     const id = parseInt(hit.objectID, 10);
     span.addEvent("hn.thread.found", { title: hit.title, id: String(id) });
     return id;
+  }
+
+  /**
+   * Returns true when the user's profile signals a non-engineering / ops /
+   * leadership focus — used to filter out pure IC engineering postings.
+   */
+  private isNonEngineeringProfile(
+    profile: import("../types.js").UserProfile
+  ): boolean {
+    const guidance = (profile.positioningGuidance ?? "").toLowerCase();
+    const nonEngineeringSignals = [
+      "not a software engineer",
+      "non-engineer",
+      "operations",
+      "chief of staff",
+      "program manager",
+      "product manager",
+      "strategy",
+      "business development",
+      "sales",
+      "marketing",
+    ];
+    if (nonEngineeringSignals.some((s) => guidance.includes(s))) return true;
+
+    // If targetTitles contains zero engineering-flavoured words, treat as non-engineering
+    const engineeringTitleRx =
+      /engineer|developer|\bdev\b|fullstack|frontend|backend|ios|android|ml\b|ai\b|sre\b|devops|data scientist/i;
+    if (
+      profile.targetTitles.length > 0 &&
+      !profile.targetTitles.some((t) => engineeringTitleRx.test(t))
+    ) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /**
+   * Returns true when the HN comment looks like a pure IC engineering hire
+   * (e.g. "Software Engineer | …" with no leadership / ops context).
+   */
+  private isPureEngineeringPost(text: string): boolean {
+    const firstLine = text.split("\n")[0].toLowerCase();
+    const isEngineeringTitle =
+      /\b(software engineer|backend engineer|frontend engineer|fullstack engineer|ml engineer|data engineer|sre|devops engineer)\b/.test(
+        firstLine
+      );
+    const hasLeadershipSignal =
+      /\b(chief of staff|head of|vp\b|director|program manager|product manager|operations|strategy|biz ops)\b/.test(
+        text.toLowerCase()
+      );
+    return isEngineeringTitle && !hasLeadershipSignal;
   }
 
   /**

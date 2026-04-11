@@ -1,0 +1,93 @@
+# Orpheus Configuration
+# This file ships with the repo as a working example.
+# Copy to archimedes.config.yaml (gitignored) to add personal data.
+
+profile:
+  name: "Your Name"
+  email: "you@example.com"
+  location: "San Francisco, CA"
+
+  summary: >
+    Senior operator with experience spanning strategy, operations, and technology.
+    Comfortable translating ambiguity into structured action across fundraising,
+    governance, partnerships, and executive operations.
+
+  skills:
+    - "Strategic Operations"
+    - "Chief of Staff Execution"
+    - "Corporate Governance"
+    - "AI tooling and workflow design"
+    - "Cross-Functional Program Leadership"
+    - "Financial Modeling"
+    - "Grant Strategy"
+    - "Executive Communications"
+
+  experience:
+    - title: "Chief of Staff"
+      company: "Example Startup"
+      startDate: "2022-01"
+      description: >
+        Supported CEO across financing, operations, partnerships, and strategy.
+      highlights:
+        - "Led $10M+ Series A financing process end to end"
+        - "Built and managed company-wide OKR and KPI systems"
+        - "Reduced outside legal spend by 5x through in-house process design"
+
+  education:
+    - institution: "University of Example"
+      degree: "J.D."
+      field: "Law"
+      graduationDate: "2015"
+
+  preferences:
+    remote: true
+    salaryMin: 150000
+    locations:
+      - "Remote"
+      - "San Francisco"
+      - "New York"
+    industries:
+      - "AI"
+      - "AI infrastructure"
+      - "Developer tools"
+      - "Venture capital"
+      - "B2B SaaS"
+    companySize: "startup"
+
+  targetTitles:
+    - "Chief of Staff"
+    - "Chief of Staff to CEO"
+    - "Director of Operations"
+    - "Head of Operations"
+    - "Head of Strategic Initiatives"
+    - "Business Operations Lead"
+    - "Corporate Development"
+    - "Founder's Associate"
+
+  positioningGuidance: >
+    Not a software engineer. Strong AI/developer-tools literacy, but primary
+    positioning is as a sophisticated operator, not a technical IC. Best fit
+    for chief-of-staff, strategic operations, investing-adjacent, and
+    business-affairs-style roles. Skip pure engineering postings.
+
+agents:
+  concurrency: 5
+  timeoutMs: 45000
+  sources:
+    - getro
+    - pallet
+    - ycombinator
+
+observability:
+  traceSamplingRate: 1.0
+  metricsExport: console
+  decisionLogLevel: standard
+  costTracking: true
+
+content:
+  model: claude-sonnet-4-20250514
+  temperature: 0.7
+  maxVariants: 3
+
+storage:
+  dbPath: "./data/orpheus.db"

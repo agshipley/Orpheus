@@ -11,7 +11,7 @@ import { z } from "zod";
 
 export const JobListingSchema = z.object({
   id: z.string(),
-  source: z.enum(["linkedin", "indeed", "github", "ycombinator", "custom"]),
+  source: z.enum(["linkedin", "indeed", "github", "ycombinator", "getro", "pallet", "custom"]),
   sourceId: z.string(),
   title: z.string(),
   company: z.string(),
@@ -123,6 +123,8 @@ export type AgentSource =
   | "indeed"
   | "github"
   | "ycombinator"
+  | "getro"
+  | "pallet"
   | "custom";
 
 export interface AgentConfig {
@@ -133,6 +135,8 @@ export interface AgentConfig {
   rateLimitRpm: number;
   credentials?: Record<string, string>;
   customEndpoint?: string;
+  /** Full user profile — passed through so agents can apply profile-aware filtering. */
+  profile?: UserProfile;
 }
 
 export interface AgentResult {

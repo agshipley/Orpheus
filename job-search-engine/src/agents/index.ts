@@ -7,12 +7,16 @@ export { LinkedInAgent } from "./linkedin_agent.js";
 export { IndeedAgent } from "./indeed_agent.js";
 export { GitHubAgent } from "./github_agent.js";
 export { HNAgent } from "./hn_agent.js";
+export { GetroAgent } from "./getro_agent.js";
+export { PalletAgent } from "./pallet_agent.js";
 
 import { BaseAgent } from "./base_agent.js";
 import { LinkedInAgent } from "./linkedin_agent.js";
 import { IndeedAgent } from "./indeed_agent.js";
 import { GitHubAgent } from "./github_agent.js";
 import { HNAgent } from "./hn_agent.js";
+import { GetroAgent } from "./getro_agent.js";
+import { PalletAgent } from "./pallet_agent.js";
 import type { AgentSource, AgentConfig } from "../types.js";
 
 const AGENT_REGISTRY: Record<
@@ -23,6 +27,8 @@ const AGENT_REGISTRY: Record<
   indeed: IndeedAgent,
   github: GitHubAgent,
   ycombinator: HNAgent,
+  getro: GetroAgent,
+  pallet: PalletAgent,
   custom: GitHubAgent,
 };
 
