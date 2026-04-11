@@ -1,131 +1,144 @@
-# 🔍 Orpheus — AI-Powered Job Search Engine
+# Orpheus — AI-Powered Job Search Engine
 
-> *"Give me a lever long enough and a fulcrum on which to place it, and I shall move the world."*
-
-An agentic job search platform built on the **Model Context Protocol (MCP)** that orchestrates parallel search agents, generates tailored application materials, and provides full observability into every decision the system makes.
+> Orchestrates parallel search agents, generates tailored application materials,
+> and exposes full observability into every decision the system makes.
 
 ---
 
-## Architecture Overview
+## Demo
+
+<!-- After recording, replace this block with one of:
+     • asciinema.org embed:  [![asciicast](https://asciinema.org/a/XXXX.svg)](https://asciinema.org/a/XXXX)
+     • GIF from agg:         ![demo](docs/demo.gif)
+-->
+
+**Record it yourself (requires [asciinema](https://asciinema.org) and [jq](https://jqlang.github.io/jq)):**
+
+```bash
+asciinema rec demo.cast --command bash scripts/demo.sh
+```
+
+The script walks through four steps automatically:
+
+1. **Search** — queries the live HN "Who is Hiring?" thread, shows a ranked results table
+2. **Pick** — selects the top-ranked job
+3. **Cover letter** — generates a tailored cover letter with Claude
+4. **Dashboard** — renders the Ink TUI with trace waterfall, latency percentiles, and cost breakdown
+
+---
+
+## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Orpheus Core                         │
-│                                                             │
-│  ┌──────────┐   ┌──────────────┐   ┌────────────────────┐  │
-│  │ Conductor│──▶│ Agent Pool   │──▶│ Content Generator  │  │
-│  │ (Orch.)  │   │ (Parallel)   │   │ (Resume/CL/Email)  │  │
-│  └────┬─────┘   └──────┬───────┘   └────────┬───────────┘  │
-│       │                │                     │              │
-│       ▼                ▼                     ▼              │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              MCP Server Layer                        │   │
-│  │  ┌────────┐ ┌────────┐ ┌────────┐ ┌──────────────┐  │   │
-│  │  │LinkedIn│ │Indeed  │ │GitHub  │ │ Custom Board │  │   │
-│  │  │ Agent  │ │ Agent  │ │ Jobs   │ │   Scraper    │  │   │
-│  │  └────────┘ └────────┘ └────────┘ └──────────────┘  │   │
-│  └──────────────────────────────────────────────────────┘   │
-│       │                │                     │              │
-│       ▼                ▼                     ▼              │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │           Observability Layer (Pylon)                │   │
-│  │  Traces · Metrics · Decision Logs · Cost Tracking    │   │
-│  └──────────────────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                        Orpheus                                 │
+│                                                                │
+│  ┌──────────┐   ┌──────────────┐   ┌────────────────────────┐  │
+│  │Conductor │──▶│  Agent Pool  │──▶│   Content Generator    │  │
+│  │  (orch.) │   │  (parallel)  │   │  Resume · CL · Email   │  │
+│  └────┬─────┘   └──────┬───────┘   └──────────┬─────────────┘  │
+│       │                │                       │               │
+│       ▼                ▼                       ▼               │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │                  MCP Server Layer                      │    │
+│  │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │    │
+│  │  │ LinkedIn │ │  Indeed  │ │  GitHub  │ │HN  Jobs  │  │    │
+│  │  │  Agent   │ │  Agent   │ │  Agent   │ │  Agent   │  │    │
+│  │  └──────────┘ └──────────┘ └──────────┘ └──────────┘  │    │
+│  └────────────────────────────────────────────────────────┘    │
+│       │                │                       │               │
+│       ▼                ▼                       ▼               │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │             Observability Layer (Pylon)                │    │
+│  │    Traces · Metrics · Decision Logs · Cost Tracking    │    │
+│  └────────────────────────────────────────────────────────┘    │
+└────────────────────────────────────────────────────────────────┘
 ```
 
 ## Key Design Decisions
 
 ### Why MCP?
-The Model Context Protocol provides a standardized interface for AI agents to interact with external tools and data sources. By building each job board integration as an MCP server, we get:
-- **Hot-swappable data sources** — add a new job board without touching orchestration logic
+The Model Context Protocol provides a standardised interface for AI agents to interact
+with external tools and data sources. Each job board integration is an independent MCP
+stdio server, which means:
+- **Hot-swappable sources** — add a new job board without touching orchestration logic
 - **Typed tool interfaces** — every agent interaction is schema-validated
 - **Protocol-level observability** — intercept and log every tool call at the transport layer
 
 ### Why Parallel Agents?
-Job searching is embarrassingly parallel. Each source is independent, results need deduplication but not coordination. We use a **fan-out/fan-in** pattern:
+Job searching is embarrassingly parallel. Each source is independent; results need
+deduplication but not coordination. The pipeline uses a **fan-out / fan-in** pattern:
 1. The **Conductor** fans out search queries to N agents simultaneously
 2. Each agent operates independently with its own MCP client session
 3. Results stream back through an async merge with deduplication
 4. The Conductor ranks and filters the unified result set
 
 ### Why a Custom Observability Layer?
-LLM-powered systems are notoriously hard to debug. Pylon (our observability layer) captures:
-- **Traces**: Full request lifecycle from query → agent dispatch → tool calls → LLM inference → content generation
-- **Metrics**: Latency percentiles, token usage, cost per search, cache hit rates
-- **Decision Logs**: Why did the ranker score job X higher than job Y? What prompt produced this cover letter?
-- **Audit Trail**: Every LLM call with full prompt/completion pairs for reproducibility
+LLM-powered systems are notoriously hard to debug. Pylon captures:
+- **Traces** — full request lifecycle from query → agent dispatch → tool calls → LLM inference
+- **Metrics** — latency percentiles (p50/p90/p95/p99), token usage, cost per search
+- **Decision Logs** — why did the ranker score job X higher than Y? what prompt produced this cover letter?
+- **Cost Tracking** — per-component USD breakdown for every LLM call
 
 ---
 
 ## Project Structure
 
 ```
-orpheus/
+job-search-engine/
 ├── src/
-│   ├── conductor/              # Orchestration layer
-│   │   ├── conductor.ts        # Main orchestrator
-│   │   ├── query_planner.ts    # Decomposes user intent into search queries
-│   │   └── result_merger.ts    # Deduplication & ranking
+│   ├── conductor/
+│   │   ├── conductor.ts        # Orchestrator — fan-out, merge, rank
+│   │   ├── query_planner.ts    # Decomposes free-text intent into structured queries
+│   │   └── result_merger.ts    # Deduplication and relevance ranking
 │   │
-│   ├── agents/                 # Parallel search agents
-│   │   ├── base_agent.ts       # Abstract agent with MCP client
-│   │   ├── linkedin_agent.ts   # LinkedIn Jobs integration
-│   │   ├── indeed_agent.ts     # Indeed integration
-│   │   ├── github_agent.ts     # GitHub Jobs integration
-│   │   └── custom_agent.ts     # Generic scraper agent
+│   ├── agents/
+│   │   ├── base_agent.ts       # Abstract MCP client with auto-connect lifecycle
+│   │   ├── hn_agent.ts         # Hacker News "Who is Hiring?" agent  ← live data
+│   │   ├── linkedin_agent.ts
+│   │   ├── indeed_agent.ts
+│   │   └── github_agent.ts
 │   │
-│   ├── mcp/                    # MCP server implementations
-│   │   ├── server.ts           # Base MCP server factory
-│   │   ├── tools/              # Tool definitions per source
-│   │   │   ├── search.ts       # search_jobs tool
-│   │   │   ├── detail.ts       # get_job_detail tool
-│   │   │   └── apply.ts        # submit_application tool
-│   │   ├── resources/          # MCP resources (user profile, preferences)
-│   │   │   ├── profile.ts
-│   │   │   └── preferences.ts
-│   │   └── prompts/            # MCP prompt templates
-│   │       ├── search.ts
-│   │       └── analyze.ts
+│   ├── mcp/
+│   │   └── server.ts           # MCP server factory (createJobBoardServer)
 │   │
-│   ├── content/                # AI content generation
-│   │   ├── resume_tailor.ts    # Resume customization engine
+│   ├── content/
+│   │   ├── resume_tailor.ts    # Resume customisation engine
 │   │   ├── cover_letter.ts     # Cover letter generator
-│   │   ├── email_drafter.ts    # Outreach email composer
-│   │   └── templates/          # Base templates & few-shot examples
+│   │   └── email_drafter.ts    # Cold-outreach email composer
 │   │
-│   ├── observability/          # Pylon — observability layer
-│   │   ├── tracer.ts           # Distributed tracing
-│   │   ├── metrics.ts          # Metrics collection & export
-│   │   ├── decision_log.ts     # Structured decision logging
-│   │   ├── cost_tracker.ts     # LLM cost accounting
-│   │   └── dashboard.ts        # Terminal dashboard renderer
+│   ├── observability/
+│   │   ├── tracer.ts           # Distributed tracing (SpanBuilder)
+│   │   ├── metrics.ts          # Latency histograms + counters
+│   │   ├── decision_log.ts     # Structured decision + cost logging
+│   │   └── index.ts            # Singleton accessors
 │   │
-│   ├── storage/                # Persistence layer
-│   │   ├── job_store.ts        # Job listing storage & dedup
-│   │   ├── application_store.ts # Application tracking
-│   │   └── vector_store.ts     # Embedding-based similarity search
+│   ├── storage/
+│   │   └── job_store.ts        # SQLite-backed job persistence
 │   │
-│   └── config/                 # Configuration
-│       ├── schema.ts           # Zod config schemas
-│       └── defaults.ts         # Default configuration
+│   ├── ui/
+│   │   └── dashboard.tsx       # Ink TUI — trace waterfall, metrics, cost breakdown
+│   │
+│   └── cli.ts                  # Commander CLI (search / apply / dashboard / stats)
+│
+├── mcp-servers/
+│   ├── hn-jobs/
+│   │   └── index.ts            # Live HN Firebase scraper MCP server
+│   └── mock/
+│       └── index.ts            # Fixture server for integration tests
 │
 ├── tests/
-│   ├── unit/
-│   ├── integration/
-│   └── fixtures/
+│   ├── unit/                   # Tracer, metrics, decision log
+│   └── integration/
+│       └── pipeline.test.ts    # Full conductor pipeline (no API keys needed)
+│
+├── scripts/
+│   └── demo.sh                 # asciinema demo script
 │
 ├── docs/
-│   ├── architecture.md         # Deep-dive architecture doc
-│   ├── mcp-protocol.md         # MCP implementation details
-│   └── observability.md        # Pylon documentation
-│
+├── orpheus.config.example.yaml
 ├── package.json
-├── tsconfig.json
-├── vitest.config.ts
-└── .github/
-    └── workflows/
-        └── ci.yml
+└── tsconfig.json
 ```
 
 ---
@@ -133,72 +146,85 @@ orpheus/
 ## Quick Start
 
 ```bash
-# Clone & install
-git clone https://github.com/youruser/orpheus.git
-cd orpheus
+git clone https://github.com/agshipley/Orpheus.git
+cd Orpheus/job-search-engine
 npm install
 
-# Configure
+# Add your Anthropic API key
 cp .env.example .env
-# Add your API keys (Anthropic, job board APIs)
+# edit .env: ANTHROPIC_API_KEY=sk-ant-...
 
-# Run a search
-npx tsx src/cli.ts search "senior typescript engineer, remote, $180k+"
+# Search the live HN "Who is Hiring?" thread
+npx tsx src/cli.ts search "typescript engineer remote"
 
-# Launch the observability dashboard
+# Open the observability dashboard
 npx tsx src/cli.ts dashboard
 
-# Generate tailored materials for a specific job
-npx tsx src/cli.ts apply <job-id> --resume --cover-letter
+# Generate tailored application materials
+npx tsx src/cli.ts apply <job-id> --cover-letter --resume
+```
+
+The span trace tree prints to stderr as the pipeline runs:
+
+```
+▸ conductor.search
+  ▸ conductor.parse_query
+  ✓ conductor.parse_query     312ms  raw=typescript engineer remote
+  ▸ conductor.fan_out
+    ▸ agent.ycombinator.connect
+    ✓ agent.ycombinator.connect   288ms
+    ▸ agent.ycombinator.search
+      ▸ mcp.tool.search_jobs
+      ✓ mcp.tool.search_jobs   1498ms  count=23
+    ✓ agent.ycombinator.search   1508ms  source=ycombinator
+  ✓ conductor.fan_out   1798ms  agents=1
+  ▸ conductor.merge
+  ✓ conductor.merge       2ms  before_dedup=23 after_dedup=21
+  ▸ conductor.rank
+  ✓ conductor.rank       36ms  ranked=21
+✓ conductor.search   2148ms
 ```
 
 ---
 
 ## Configuration
 
+Copy `orpheus.config.example.yaml` and customise:
+
 ```yaml
-# orpheus.config.yaml
 profile:
   name: "Your Name"
-  resume_path: "./resume.pdf"
-  skills: ["TypeScript", "Python", "System Design", "MCP"]
+  skills: ["TypeScript", "Python", "Go", "System Design"]
   preferences:
     remote: true
-    salary_min: 150000
+    salaryMin: 150000
     locations: ["San Francisco", "New York", "Remote"]
-    industries: ["AI/ML", "Developer Tools", "Infrastructure"]
 
 agents:
   concurrency: 5
-  timeout_ms: 30000
+  timeoutMs: 30000
   sources:
-    - linkedin
-    - indeed
-    - github
-    - ycombinator
-
-observability:
-  trace_sampling_rate: 1.0  # Sample everything in dev
-  metrics_export: "console"  # or "prometheus", "otlp"
-  decision_log_level: "detailed"
-  cost_tracking: true
+    - ycombinator   # live HN "Who is Hiring?" (default)
+    # - linkedin
+    # - indeed
+    # - github
 
 content:
   model: "claude-sonnet-4-20250514"
   temperature: 0.7
-  max_variants: 3  # Generate N cover letter variants
+  maxVariants: 3
 ```
 
 ---
 
-## MCP Protocol Design
+## MCP Tool Interface
 
-Each job board integration exposes a standard set of MCP tools:
+Each job board MCP server implements a standard set of tools:
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `search_jobs` | Query job listings | `query`, `location`, `filters` |
-| `get_job_detail` | Fetch full job description | `job_id` |
+| Tool | Description | Key Parameters |
+|------|-------------|----------------|
+| `search_jobs` | Query job listings | `query`, `location`, `remote`, `skills` |
+| `get_job_detail` | Fetch the full job description | `job_id` |
 | `check_salary` | Estimate compensation range | `job_id`, `location` |
 | `submit_application` | Submit application materials | `job_id`, `resume`, `cover_letter` |
 
@@ -206,44 +232,88 @@ And MCP resources for stateful context:
 
 | Resource | Description |
 |----------|-------------|
-| `profile://user` | Current user profile & resume |
-| `preferences://search` | Search preferences & filters |
-| `history://applications` | Past applications & outcomes |
+| `profile://user` | Current user profile and resume |
+| `preferences://search` | Search preferences and filters |
 
 ---
 
 ## Observability: Pylon
 
-Every operation produces structured traces:
+Every operation produces a structured trace. Example from a live search:
 
 ```json
 {
-  "trace_id": "arc_7f3a...",
-  "span": "conductor.search",
-  "duration_ms": 2847,
+  "traceId": "orp_7f3a9b2c1d4e5f6a",
+  "name": "conductor.search",
+  "durationMs": 2148,
+  "status": "ok",
   "children": [
     {
-      "span": "agent.linkedin.search",
-      "duration_ms": 1203,
-      "tool_calls": 3,
-      "results_found": 47,
-      "tokens_used": 1840,
-      "cost_usd": 0.0055
+      "name": "conductor.parse_query",
+      "durationMs": 312
     },
     {
-      "span": "agent.indeed.search",
-      "duration_ms": 890,
-      "tool_calls": 2,
-      "results_found": 31,
-      "tokens_used": 1520,
-      "cost_usd": 0.0046
+      "name": "agent.ycombinator.search",
+      "durationMs": 1508,
+      "attributes": {
+        "source": "ycombinator",
+        "results.count": 23,
+        "tokens.used": 0
+      }
+    },
+    {
+      "name": "conductor.merge",
+      "durationMs": 2,
+      "attributes": { "jobs.before_dedup": 23, "jobs.after_dedup": 21 }
+    },
+    {
+      "name": "conductor.rank",
+      "durationMs": 36,
+      "attributes": { "jobs.ranked": 21, "tokens.used": 472, "cost.usd": 0.0014 }
     }
-  ],
-  "merged_results": 62,
-  "deduplicated": 16,
-  "final_ranked": 62
+  ]
 }
 ```
+
+The `dashboard` command renders this as a live terminal UI (press `q` to quit):
+
+```
+ Orpheus Dashboard  · last search at 11:53:42 AM
+
+ "typescript engineer remote"   2148ms · 21 jobs · 1/1 agents
+
+ TRACE WATERFALL  orp_7f3a9b2c1d4e5f6a
+ conductor.search                ████████████████████████████████████  2148ms
+   conductor.parse_query         █████                                  312ms
+   conductor.fan_out                  ██████████████████████████████   1798ms
+     agent.ycombinator.search              █████████████████████████   1508ms
+   conductor.rank                                                   █    36ms
+
+ METRICS
+                                          p50      p90      p95      p99  count
+ search_latency_ms                     2148ms   2148ms   2148ms   2148ms      1
+ agent_latency_ms                      1508ms   1508ms   1508ms   1508ms      1
+
+ COST BREAKDOWN
+ Component                        Tokens In Tokens Out       Cost
+ query_parser                           350         72    $0.0010
+ ranker                                  95         27    $0.0003
+ ──────────────────────────────────────────────────────────────
+ Total                                  445         99    $0.0014
+```
+
+---
+
+## Testing
+
+```bash
+npm test                  # unit + integration (no API keys needed)
+npm run test:coverage     # with coverage report
+```
+
+Integration tests spin up the mock MCP server as a real subprocess and run the
+full Conductor pipeline with the Anthropic SDK mocked — no network calls, no
+API keys required.
 
 ---
 
@@ -253,4 +323,4 @@ MIT
 
 ---
 
-*Built to demonstrate production-grade MCP architecture, agentic orchestration, and AI-native workflows.*
+*Built to demonstrate production-grade MCP architecture, agentic orchestration, and AI-native observability.*
