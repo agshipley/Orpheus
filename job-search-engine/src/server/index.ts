@@ -56,6 +56,13 @@ app.use(
   })
 );
 
+// ─── Request logger (every request, before routing) ───────────────
+
+app.use((req, _res, next) => {
+  console.log(`[req] ${req.method} ${req.path}`);
+  next();
+});
+
 // ─── API Routes ───────────────────────────────────────────────────
 
 app.post("/api/search", searchHandler);

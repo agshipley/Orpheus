@@ -38,6 +38,10 @@ RUN npm ci --omit=dev
 # Copy compiled output from builder
 COPY --from=builder /app/dist ./dist
 
+# Copy config file so loadConfig() finds it in production
+# (archimedes.config.yaml is gitignored and not in the image — falls back to this)
+COPY --from=builder /app/orpheus.config.yaml ./orpheus.config.yaml
+
 # Data directory for SQLite and dashboard state
 RUN mkdir -p data
 

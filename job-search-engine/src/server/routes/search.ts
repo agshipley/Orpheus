@@ -11,6 +11,7 @@ import { loadConfig } from "../config.js";
  * if source agents are unavailable.
  */
 export async function searchHandler(req: Request, res: Response): Promise<void> {
+  console.log("[search] received body:", JSON.stringify(req.body));
   const { query } = req.body as { query?: unknown };
 
   if (typeof query !== "string" || !query.trim()) {
