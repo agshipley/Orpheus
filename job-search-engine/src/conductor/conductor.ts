@@ -248,15 +248,20 @@ Schema:
     const limit = pLimit(this.config.agents.concurrency);
     const agents = this.agentFactory(sources, profile ? { profile } : undefined);
 
+    console.log(`[conductor] fanOutSearch: sources=${sources.join(", ")} agents=${agents.length}`);
+
     const promises = agents.map((agent) =>
       limit(async () => {
+        const agentSource = (agent as unknown as { config: { source: AgentSource } }).config.source;
         try {
           // Each agent gets its own child span
-          return await agent.executeSearch(query, parentSpan);
+          const result = await agent.executeSearch(query, parentSpan);
+          console.log(`[conductor] agent=${agentSource} jobs=${result.jobs.length} errors=${result.metadata.errors.length > 0 ? JSON.stringify(result.metadata.errors) : "none"}`);
+          return result;
         } catch (error) {
           // Agent failures are non-fatal — return empty result
-          const source = (agent as unknown as { config: { source: AgentSource } })
-            .config.source;
+          const source = agentSource;
+          console.log(`[conductor] agent=${source} FAILED: ${error instanceof Error ? error.message : String(error)}`);
 
           this.decisionLog.logDecision({
             traceId: parentSpan.traceId,
@@ -443,7 +448,7 @@ Schema:
   ): number {
     let score = 0;
 
-    // ── Dominant signal: profile target title match (+50) ──────────
+    // ── Dominant signal: profile target title match (+60) ──────────
     // Any phrase from targetTitles found in the job title → strong boost.
     // This is the highest-weighted single signal so profile-aligned roles
     // always surface above keyword-matched-but-wrong-level results.
@@ -452,7 +457,7 @@ Schema:
       const matches = profile.targetTitles.some((t) =>
         jobTitleLower.includes(t.toLowerCase())
       );
-      if (matches) score += 50;
+      if (matches) score += 60;
     }
 
     // ── Skill match (up to 40) ─────────────────────────────────────
