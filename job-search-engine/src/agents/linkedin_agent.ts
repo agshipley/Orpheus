@@ -65,8 +65,8 @@ export class LinkedInAgent extends BaseAgent {
     const searchParams = this.buildSearchParams(query);
 
     span.addEvent("linkedin.search.params_built", {
-      keywords: searchParams.keywords,
-      locationId: searchParams.locationId ?? "none",
+      keywords: String(searchParams.keywords),
+      locationId: String(searchParams.locationId ?? "none"),
     });
 
     // Call the MCP search_jobs tool

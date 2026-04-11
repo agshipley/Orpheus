@@ -175,18 +175,10 @@ export function createJobBoardServer(adapter: JobBoardAdapter): McpServer {
   server.prompt(
     "analyze_job",
     "Analyze a job listing against the user's profile",
-    [
-      {
-        name: "job_description",
-        description: "The full job description text",
-        required: true,
-      },
-      {
-        name: "user_skills",
-        description: "Comma-separated list of user skills",
-        required: true,
-      },
-    ],
+    {
+      job_description: z.string().describe("The full job description text"),
+      user_skills: z.string().describe("Comma-separated list of user skills"),
+    },
     async ({ job_description, user_skills }) => ({
       messages: [
         {

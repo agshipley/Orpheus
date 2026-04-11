@@ -14,7 +14,6 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import pLimit from "p-limit";
-import { nanoid } from "nanoid";
 import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js";
 import { createAgentPool } from "../agents/index.js";
 import type { BaseAgent } from "../agents/base_agent.js";

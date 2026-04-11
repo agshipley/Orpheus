@@ -14,7 +14,7 @@
 
 import { nanoid } from "nanoid";
 import { EventEmitter } from "eventemitter3";
-import type { Span, SpanEvent, Metric, CostEntry } from "../types.js";
+import type { Span, Metric, CostEntry } from "../types.js";
 
 // ─── Trace Store ──────────────────────────────────────────────────
 
@@ -221,7 +221,7 @@ export class Tracer {
    * Subscribe to tracer events for export/logging.
    */
   on<E extends keyof TracerEvents>(event: E, handler: TracerEvents[E]): void {
-    this.emitter.on(event, handler);
+    this.emitter.on(event, handler as never);
   }
 
   /**
