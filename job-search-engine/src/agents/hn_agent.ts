@@ -1,130 +1,322 @@
 /**
- * HN Agent — Searches Hacker News "Who's Hiring" via MCP.
+ * HN Agent — Fetches real job listings from HN "Ask HN: Who is Hiring?"
  *
- * Spawns the hn-jobs MCP server as a subprocess and queries it
- * with the standardized search_jobs tool. No API key required —
- * results come directly from the public HN Firebase API.
+ * Bypasses MCP entirely and calls the public HN APIs directly:
+ *   1. Algolia API  → find the current month's "Who is Hiring?" thread ID
+ *   2. Firebase API → get thread's top-level comment IDs (each is a job post)
+ *   3. Firebase API → fetch each comment in parallel (p-limit concurrency)
+ *   4. Parse HTML comment text → JobListing
+ *   5. Filter by query keywords and return up to maxResults jobs
+ *
+ * No API key required. Node 20+ fetch used throughout.
  */
 
-import path from "path";
-import { fileURLToPath } from "url";
+import { nanoid } from "nanoid";
+import pLimit from "p-limit";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BaseAgent } from "./base_agent.js";
 import { SpanBuilder } from "../observability/index.js";
 import type { AgentConfig, JobListing, SearchQuery } from "../types.js";
-import { nanoid } from "nanoid";
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-// Resolve the MCP server path relative to this file at runtime
-const SERVER_PATH = path.resolve(
-  __dirname,
-  "../../mcp-servers/hn-jobs/index.ts"
-);
+// ─── HN API types ─────────────────────────────────────────────────
 
-interface HNJobRaw {
-  jobId: string;
-  title: string;
-  company: { name: string };
-  location: string;
-  remote?: boolean;
-  description: string;
-  skills?: string[];
-  url: string;
-  listedAt?: string;
+interface HNItem {
+  id: number;
+  type?: string;
+  by?: string;
+  text?: string;       // HTML-encoded comment body
+  time?: number;       // Unix timestamp
+  kids?: number[];     // child comment IDs
+  url?: string;
+  deleted?: boolean;
+  dead?: boolean;
 }
+
+interface AlgoliaHit {
+  objectID: string;    // HN item ID as string
+  title: string;
+  created_at_i: number;
+}
+
+interface AlgoliaResponse {
+  hits: AlgoliaHit[];
+}
+
+// ─── HTML helpers ─────────────────────────────────────────────────
+
+function decodeHtmlEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, "/")
+    .replace(/&#x60;/g, "`")
+    .replace(/&nbsp;/g, " ");
+}
+
+function htmlToText(html: string): string {
+  return decodeHtmlEntities(html)
+    .replace(/<p>/gi, "\n\n")            // HN uses <p> for paragraph breaks
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<a\s[^>]*href="([^"]+)"[^>]*>[^<]*<\/a>/gi, "$1") // unwrap links
+    .replace(/<[^>]+>/g, "")            // strip remaining tags
+    .replace(/\n{3,}/g, "\n\n")         // collapse excessive blank lines
+    .trim();
+}
+
+// ─── Fetch helper ─────────────────────────────────────────────────
+
+async function fetchJson<T>(url: string): Promise<T> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status} fetching ${url}`);
+  return res.json() as Promise<T>;
+}
+
+// ─── Agent ────────────────────────────────────────────────────────
 
 export class HNAgent extends BaseAgent {
   constructor(config?: Partial<AgentConfig>) {
     super({
       source: "ycombinator",
       enabled: true,
-      timeoutMs: 60000, // HN scraping can take a moment on first call
+      timeoutMs: 90000,
       maxRetries: 1,
-      rateLimitRpm: 10,
+      rateLimitRpm: 60,
       ...config,
     });
   }
 
-  protected createTransport(): StdioClientTransport {
-    return new StdioClientTransport({
-      command: "npx",
-      args: ["tsx", SERVER_PATH],
-      env: Object.fromEntries(
-        Object.entries(process.env).filter(
-          (e): e is [string, string] => e[1] !== undefined
-        )
-      ),
-    });
+  // ── No MCP transport needed ──────────────────────────────────────
+
+  /** Override to skip MCP connection entirely. */
+  override async connect(): Promise<void> {
+    this.connected = true;
   }
+
+  /** Override to avoid calling client.close() on a never-connected client. */
+  override async disconnect(): Promise<void> {
+    this.connected = false;
+  }
+
+  /** Never called — satisfies BaseAgent's abstract signature. */
+  protected createTransport(): StdioClientTransport {
+    throw new Error("HNAgent does not use an MCP transport");
+  }
+
+  // ── Core search ─────────────────────────────────────────────────
 
   protected async search(
     query: SearchQuery,
     span: SpanBuilder
-  ): Promise<{
-    jobs: JobListing[];
-    toolCallCount: number;
-    tokensUsed: number;
-  }> {
+  ): Promise<{ jobs: JobListing[]; toolCallCount: number; tokensUsed: number }> {
     span.addEvent("hn.search.start", { query: query.raw });
 
-    const params: Record<string, unknown> = {
-      keywords: query.title || query.raw,
-      limit: Math.min(query.maxResults, 50),
-    };
+    // 1. Find the current "Who is Hiring?" thread via Algolia
+    const threadId = await this.findHiringThread(span);
 
-    if (query.remote) params.remoteFilter = "remote";
-    if (query.location) params.location = query.location;
-
-    const rawResults = await this.callTool<{
-      jobs: HNJobRaw[];
-      total: number;
-    }>("search_jobs", params, span);
-
-    span.addEvent("hn.search.results", {
-      count: rawResults.jobs.length,
-      total: rawResults.total,
+    // 2. Fetch thread to get top-level comment IDs
+    const thread = await fetchJson<HNItem>(
+      `https://hacker-news.firebaseio.com/v0/item/${threadId}.json`
+    );
+    const kids = thread.kids ?? [];
+    span.addEvent("hn.thread.fetched", {
+      threadId: String(threadId),
+      commentCount: kids.length,
     });
 
-    const jobs = rawResults.jobs.map((raw) => this.normalize(raw));
+    // 3. Fetch comments in parallel — cap at 400 to stay reasonable
+    const fetchLimit = pLimit(12);
+    const toFetch = kids.slice(0, 400);
 
-    // Apply skill filter client-side if requested
-    let filtered = jobs;
-    if (query.skills.length > 0) {
-      filtered = jobs.filter((job) => {
-        const text = job.description.toLowerCase();
-        return query.skills.some((s) => text.includes(s.toLowerCase()));
-      });
-      span.addEvent("hn.search.skill_filtered", {
-        before: jobs.length,
-        after: filtered.length,
-      });
+    const comments = (
+      await Promise.all(
+        toFetch.map((id) =>
+          fetchLimit(async () => {
+            try {
+              return await fetchJson<HNItem>(
+                `https://hacker-news.firebaseio.com/v0/item/${id}.json`
+              );
+            } catch {
+              return null;
+            }
+          })
+        )
+      )
+    ).filter(
+      (c): c is HNItem => c !== null && !c.deleted && !c.dead && !!c.text
+    );
+
+    span.addEvent("hn.comments.fetched", { fetched: comments.length });
+
+    // 4. Build keyword list from the query
+    const keywords = this.buildKeywords(query);
+
+    // 5. Parse, filter, cap at maxResults
+    const jobs: JobListing[] = [];
+
+    for (const comment of comments) {
+      if (jobs.length >= query.maxResults) break;
+
+      const text = htmlToText(comment.text!);
+      if (!text) continue;
+
+      // Keyword filter — at least one keyword must appear in the text
+      if (keywords.length > 0) {
+        const lower = text.toLowerCase();
+        if (!keywords.some((kw) => lower.includes(kw))) continue;
+      }
+
+      // Remote filter from query
+      if (query.remote) {
+        const lower = text.toLowerCase();
+        if (!lower.includes("remote") && !lower.includes("distributed")) continue;
+      }
+
+      const job = this.parseComment(comment, text);
+      if (job) jobs.push(job);
     }
 
-    return { jobs: filtered, toolCallCount: 1, tokensUsed: 0 };
+    span.addEvent("hn.search.done", { jobs: jobs.length });
+
+    return {
+      jobs,
+      toolCallCount: toFetch.length + 2,
+      tokensUsed: 0,
+    };
   }
 
-  private normalize(raw: HNJobRaw): JobListing {
-    let url = raw.url;
-    try {
-      new URL(url);
-    } catch {
-      url = `https://news.ycombinator.com/item?id=${raw.jobId}`;
+  // ── Private helpers ──────────────────────────────────────────────
+
+  private async findHiringThread(span: SpanBuilder): Promise<number> {
+    // Algolia filtered to the official whoishiring account, sorted by date
+    const url =
+      "https://hn.algolia.com/api/v1/search_by_date" +
+      "?query=Ask+HN%3A+Who+is+hiring%3F" +
+      "&tags=story%2Cauthor_whoishiring" +
+      "&hitsPerPage=1";
+
+    const data = await fetchJson<AlgoliaResponse>(url);
+
+    if (!data.hits.length) {
+      throw new Error("Could not locate 'Ask HN: Who is Hiring?' thread via Algolia");
     }
+
+    const hit = data.hits[0];
+    const id = parseInt(hit.objectID, 10);
+    span.addEvent("hn.thread.found", { title: hit.title, id: String(id) });
+    return id;
+  }
+
+  /**
+   * Build a deduplicated, lowercased list of meaningful search keywords.
+   * Draws from: query.title words, query.skills, then query.raw as fallback.
+   */
+  private buildKeywords(query: SearchQuery): string[] {
+    const stopWords = new Set([
+      "the", "and", "for", "with", "that", "this", "from", "have",
+      "are", "was", "will", "can", "our", "you", "your", "but", "not",
+    ]);
+
+    const raw: string[] = [];
+
+    if (query.title) {
+      raw.push(...query.title.split(/\s+/));
+    }
+    raw.push(...query.skills);
+
+    if (raw.length === 0 && query.raw) {
+      raw.push(...query.raw.split(/\s+/));
+    }
+
+    return [
+      ...new Set(
+        raw
+          .map((w) => w.toLowerCase().replace(/[^a-z0-9+#.]/g, ""))
+          .filter((w) => w.length >= 2 && !stopWords.has(w))
+      ),
+    ];
+  }
+
+  /**
+   * Parse a raw HN comment into a JobListing.
+   *
+   * The most common HN job post formats:
+   *   Company | Location | Remote | Role description
+   *   Company | Role | Location | Remote | Salary
+   *
+   * We parse the pipe-separated first line and scan the full text
+   * for remote/location signals.
+   */
+  private parseComment(item: HNItem, text: string): JobListing | null {
+    const lines = text
+      .split("\n")
+      .map((l) => l.trim())
+      .filter(Boolean);
+    if (lines.length === 0) return null;
+
+    const firstLine = lines[0];
+    const parts = firstLine.split("|").map((p) => p.trim()).filter(Boolean);
+    if (parts.length === 0) return null;
+
+    const company = parts[0];
+
+    // Remote — scan full text
+    const textLower = text.toLowerCase();
+    const remote =
+      textLower.includes("remote") || textLower.includes("distributed");
+
+    // Location — first pipe segment that isn't a keyword or URL
+    const locationStops = new Set([
+      "remote", "onsite", "on-site", "hybrid", "full-time", "fulltime",
+      "part-time", "parttime", "contract", "freelance", "intern", "internship",
+    ]);
+    const location =
+      parts.slice(1).find((p) => {
+        const pl = p.toLowerCase();
+        return (
+          !locationStops.has(pl) &&
+          !/remote/i.test(p) &&
+          p.length >= 2 &&
+          p.length <= 80 &&
+          !/^https?:\/\//.test(p)
+        );
+      }) ?? "";
+
+    // Title — look for role words in any pipe segment
+    const roleRx =
+      /engineer|developer|\bdev\b|designer|manager|product|data|ml\b|ai\b|devops|fullstack|full.?stack|frontend|front.?end|backend|back.?end|ios\b|android|mobile|\bqa\b|\bsre\b|reliability|cto|vp\b|director|\blead\b|scientist|analyst|architect|researcher/i;
+
+    const rolePart = parts.slice(1).find((p) => roleRx.test(p));
+    const title = rolePart
+      ? `${rolePart.trim()} at ${company}`
+      : roleRx.test(firstLine)
+      ? firstLine.slice(0, 120)
+      : `Hiring at ${company}`;
+
+    // URL — first https link in text, or HN item permalink
+    const urlMatch = text.match(/https?:\/\/[^\s<>"']+/);
+    const url = urlMatch
+      ? urlMatch[0].replace(/[.,;)]+$/, "")
+      : `https://news.ycombinator.com/item?id=${item.id}`;
 
     return {
       id: `hn_${nanoid(10)}`,
       source: "ycombinator",
-      sourceId: raw.jobId,
-      title: raw.title,
-      company: raw.company.name,
-      location: raw.location,
-      remote: raw.remote,
-      description: raw.description,
-      requirements: raw.skills ?? [],
+      sourceId: String(item.id),
+      title,
+      company,
+      location,
+      remote,
+      description: text,
+      requirements: [],
       url,
-      postedAt: raw.listedAt,
+      postedAt: item.time
+        ? new Date(item.time * 1000).toISOString()
+        : undefined,
       scrapedAt: new Date().toISOString(),
-      tags: raw.skills ?? [],
+      tags: [],
     };
   }
 }
