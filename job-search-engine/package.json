@@ -1,0 +1,62 @@
+{
+  "name": "orpheus",
+  "version": "0.1.0",
+  "description": "AI-powered job search engine built on MCP with parallel agents and full observability",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/cli.ts",
+    "start": "node dist/cli.js",
+    "search": "tsx src/cli.ts search",
+    "dashboard": "tsx src/cli.ts dashboard",
+    "apply": "tsx src/cli.ts apply",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "lint": "eslint src/ --ext .ts",
+    "format": "prettier --write 'src/**/*.ts'"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "zod": "^3.23.8",
+    "commander": "^12.1.0",
+    "yaml": "^2.6.1",
+    "chalk": "^5.3.0",
+    "ora": "^8.1.1",
+    "cli-table3": "^0.6.5",
+    "p-limit": "^6.2.0",
+    "p-queue": "^8.0.1",
+    "eventemitter3": "^5.0.1",
+    "nanoid": "^5.0.9",
+    "better-sqlite3": "^11.7.0",
+    "date-fns": "^4.1.0",
+    "ink": "^5.1.0",
+    "ink-table": "^4.0.1",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/better-sqlite3": "^7.6.12",
+    "typescript": "^5.7.0",
+    "tsx": "^4.19.0",
+    "vitest": "^2.1.0",
+    "eslint": "^9.15.0",
+    "prettier": "^3.4.0",
+    "@vitest/coverage-v8": "^2.1.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "ai-agents",
+    "job-search",
+    "orchestration",
+    "observability"
+  ],
+  "license": "MIT"
+}

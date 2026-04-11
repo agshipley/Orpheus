@@ -1,0 +1,75 @@
+# Orpheus Configuration
+# Copy to orpheus.config.yaml and customize
+
+profile:
+  name: "Your Name"
+  email: "you@example.com"
+  resume_path: "./resume.pdf"
+  summary: "Experienced software engineer specializing in distributed systems and AI/ML infrastructure."
+  skills:
+    - TypeScript
+    - Python
+    - Go
+    - System Design
+    - Distributed Systems
+    - Machine Learning
+    - Kubernetes
+    - PostgreSQL
+    - gRPC
+    - MCP
+  experience:
+    - title: "Senior Software Engineer"
+      company: "TechCorp"
+      startDate: "2022-01"
+      description: "Led backend platform team building real-time data processing pipelines."
+      highlights:
+        - "Reduced p99 latency from 800ms to 120ms via query optimization and caching"
+        - "Designed event-driven architecture processing 2M events/day"
+        - "Mentored 4 junior engineers, 2 promoted within 18 months"
+    - title: "Software Engineer"
+      company: "StartupCo"
+      startDate: "2019-06"
+      endDate: "2021-12"
+      description: "Full-stack engineer on core product team."
+      highlights:
+        - "Built real-time collaboration features used by 50k+ daily active users"
+        - "Implemented CI/CD pipeline reducing deploy time from 45min to 8min"
+  education:
+    - institution: "University of California"
+      degree: "B.S."
+      field: "Computer Science"
+      graduationDate: "2019-05"
+  preferences:
+    remote: true
+    salaryMin: 150000
+    locations:
+      - San Francisco
+      - New York
+      - Remote
+    industries:
+      - AI/ML
+      - Developer Tools
+      - Infrastructure
+    companySize: any
+
+agents:
+  concurrency: 5
+  timeoutMs: 30000
+  sources:
+    - linkedin
+    - indeed
+    - github
+
+observability:
+  traceSamplingRate: 1.0
+  metricsExport: console
+  decisionLogLevel: detailed
+  costTracking: true
+
+content:
+  model: claude-sonnet-4-20250514
+  temperature: 0.7
+  maxVariants: 3
+
+storage:
+  dbPath: "./data/orpheus.db"
