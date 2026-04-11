@@ -61,6 +61,10 @@ export const UserProfileSchema = z.object({
   name: z.string(),
   email: z.string().email().optional(),
   phone: z.string().optional(),
+  linkedin: z.string().optional(),
+  github: z.string().optional(),
+  website: z.string().optional(),
+  location: z.string().optional(),
   resumePath: z.string().optional(),
   resumeText: z.string().optional(),
   summary: z.string().optional(),
@@ -96,6 +100,18 @@ export const UserProfileSchema = z.object({
       .enum(["startup", "mid", "large", "enterprise", "any"])
       .default("any"),
   }),
+  targetTitles: z.array(z.string()).default([]),
+  voice: z.object({
+    tone: z.string(),
+    avoidPhrases: z.array(z.string()).default([]),
+    signaturePhrases: z.array(z.string()).default([]),
+  }).optional(),
+  positioningGuidance: z.string().optional(),
+  projects: z.array(z.object({
+    name: z.string(),
+    description: z.string(),
+    role: z.string().optional(),
+  })).default([]),
 });
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;

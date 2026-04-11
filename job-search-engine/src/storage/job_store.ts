@@ -169,6 +169,60 @@ export class JobStore {
   }
 
   /**
+   * Get a single job by ID.
+   */
+  getById(id: string): JobListing | undefined {
+    const row = this.db
+      .prepare(`SELECT * FROM jobs WHERE id = ?`)
+      .get(id) as JobRow | undefined;
+    return row ? this.rowToListing(row) : undefined;
+  }
+
+  /**
+   * Paginated job listing with optional source/remote filters.
+   */
+  list(opts: {
+    page?: number;
+    limit?: number;
+    source?: string;
+    remote?: boolean;
+  } = {}): { jobs: JobListing[]; total: number } {
+    const page = Math.max(1, opts.page ?? 1);
+    const limit = Math.min(100, Math.max(1, opts.limit ?? 20));
+    const offset = (page - 1) * limit;
+
+    const conditions: string[] = [];
+    const params: (string | number)[] = [];
+
+    if (opts.source) {
+      conditions.push("source = ?");
+      params.push(opts.source);
+    }
+    if (opts.remote !== undefined) {
+      conditions.push("remote = ?");
+      params.push(opts.remote ? 1 : 0);
+    }
+
+    const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
+
+    const total = (
+      this.db
+        .prepare(`SELECT COUNT(*) as count FROM jobs ${where}`)
+        .get(...params) as { count: number }
+    ).count;
+
+    const rows = this.db
+      .prepare(
+        `SELECT * FROM jobs ${where}
+         ORDER BY match_score DESC, scraped_at DESC
+         LIMIT ? OFFSET ?`
+      )
+      .all(...params, limit, offset) as JobRow[];
+
+    return { jobs: rows.map(this.rowToListing), total };
+  }
+
+  /**
    * Get top-scored jobs.
    */
   getTopJobs(limit: number = 20): JobListing[] {

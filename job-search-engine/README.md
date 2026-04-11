@@ -317,6 +317,65 @@ API keys required.
 
 ---
 
+## Deployment (Railway)
+
+### One-time setup
+
+```bash
+# Install the Railway CLI
+npm install -g @railway/cli
+
+# Authenticate
+railway login
+
+# Create a new Railway project linked to this directory
+railway init
+```
+
+### Set environment variables
+
+In the Railway dashboard → your project → Variables, add:
+
+| Variable | Value |
+|----------|-------|
+| `ANTHROPIC_API_KEY` | `sk-ant-...` |
+| `NODE_ENV` | `production` |
+
+Railway injects `PORT` automatically — no need to set it.
+
+### Deploy
+
+```bash
+# Build and push to Railway
+railway up
+```
+
+Railway detects the `Dockerfile` and runs the multi-stage build:
+1. Installs root and client dependencies
+2. Compiles TypeScript (`dist/`)
+3. Bundles the React frontend (`dist/client/`)
+4. Produces a lean Alpine image (~`node:20-alpine` + compiled output)
+
+The `railway.toml` configures the health check at `GET /api/health`. Railway will wait for a `{"status":"ok"}` response before routing traffic.
+
+### Subsequent deploys
+
+```bash
+railway up
+```
+
+Or connect the GitHub repo in the Railway dashboard for automatic deploys on push to `main`.
+
+### Local production preview
+
+```bash
+npm run build          # compile server + bundle client
+NODE_ENV=production node dist/server/index.js
+# → http://localhost:3000
+```
+
+---
+
 ## License
 
 MIT
