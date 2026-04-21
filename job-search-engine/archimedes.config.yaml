@@ -1,0 +1,293 @@
+# Archimedes Configuration — Andrew Shipley
+# GITIGNORED. Contains personal data. Never commit.
+
+profile:
+  name: "Andrew Shipley"
+  email: "shipley.andrew@gmail.com"
+  phone: "(917) 225-1548"
+  linkedin: ""
+  github: ""
+  website: ""
+  location: "Santa Monica, California"
+
+  summary: >
+    Senior operator with a hybrid business, legal, and strategy background
+    spanning early-stage technology, AI infrastructure, quantum computing,
+    corporate transactions, and high-judgment execution. Known for translating
+    ambiguity into structured action across fundraising, governance, partnerships,
+    grant strategy, and executive operations. Career throughline: helping founders
+    and leadership teams make consequential decisions, build systems, and execute
+    with rigor in complex, fast-moving environments.
+
+  skills:
+    - "Strategic Operations"
+    - "Corporate Transactions and Governance"
+    - "AI / Developer Infrastructure Literacy"
+    - "Executive Communications"
+    - "Grant Strategy and Technical Writing"
+    - "Financial and Cap Table Modeling"
+    - "Cross-Functional Program Leadership"
+    - "Chief of Staff Execution"
+    - "AI tooling and workflow design"
+    - "LLM evaluation and rubric design"
+    - "Prompt engineering"
+    - "MCP architecture"
+    - "Git and GitHub"
+    - "GTM strategy and pipeline management"
+    - "Budget and P&L management"
+    - "EDGAR research and document analysis"
+    - "Financial modeling and multi-year projections"
+    - "Cap table modeling"
+    - "SAFE / warrant / convertible note modeling"
+    - "Data room structuring and diligence management"
+    - "Contract drafting, redlining, and negotiation"
+    - "Corporate governance design"
+    - "Information security (SOC II)"
+    - "IP licensing and technology transfer"
+    - "SBIR / non-dilutive grant writing"
+    - "Legal research"
+    - "Market research"
+    - "Deck development"
+    - "HubSpot"
+    - "Stakeholder management"
+    - "Partnership development"
+    - "Process design and HR systems"
+    - "Hiring and talent evaluation"
+    - "Fund formation and portfolio management"
+    - "Tax and regulatory compliance"
+
+  experience:
+    - title: "Director, Business and Legal Operations"
+      company: "Trace Machina, Inc. (NativeLink)"
+      startDate: "2024-02"
+      endDate: "2025"
+      description: >
+        Engineering-led simulation infrastructure platform backed by Samsung Next,
+        Sequoia, and Wellington Management. Operated across business operations,
+        legal, finance, and GTM as sole director supporting the CEO.
+      highlights:
+        - "10x ARR to >$1M in first year"
+        - "Directly supported CEO in designing, testing, and deploying all GTM initiatives"
+        - "Managed GTM team (sole director) including company-wide OKRs and KPIs"
+        - "Reduced monthly outside legal spend by over 7x ($22k to $3k)"
+        - "Led all phases of vendor and customer contract negotiation"
+        - "Designed and implemented company information security system (SOC II certification)"
+        - "Reduced monthly burn by >30% to maintain capitalization targets"
+        - "Established annual budget and oversaw monthly P&L including multi-year modeling"
+        - "Managed customer pipeline and CRM (HubSpot lead)"
+        - "Designed and implemented company-wide HR processes"
+        - "Participated in all phases of company financing activities"
+
+    - title: "Chief of Staff (executive)"
+      company: "EeroQ Corporation"
+      startDate: "2023-02"
+      endDate: "2024-01"
+      description: >
+        Quantum hardware company building commercially viable quantum processors
+        using electrons-on-helium modality. Worked directly with CEO on all
+        facets of company growth.
+      highlights:
+        - "Worked directly with CEO on all facets of company growth"
+        - "Responsible for budget and financial projections"
+        - "Opened first and second company offices (Chicago HQ; NY satellite)"
+        - "Managed external PR agency to craft media strategy driving public awareness"
+        - "Secured bet-the-company IP licensing agreements with Princeton University and Michigan State University"
+        - "Led >$10M in financing activities including B Capital-led Series Seed"
+        - "Secured SBIR Phase I grant funding"
+        - "Led all contract negotiation including $8M Series Seed financing"
+        - "Oversaw Director of Policy ensuring SEC and CFIUS compliance"
+
+    - title: "Special Counsel"
+      company: "EeroQ Corporation"
+      startDate: "2017-07"
+      endDate: "2023-02"
+      description: >
+        Outside counsel and strategic advisor to the company from pre-seed
+        through Series Seed, then promoted to Chief of Staff.
+      highlights:
+        - "Multi-year advisory relationship spanning formation through institutional financing"
+        - "Drafted successful grant language for non-dilutive funding (SBIR Phase I)"
+
+    - title: "Co-Founding Partner, Corporate and Venture"
+      company: "AGS Law PLLC"
+      startDate: "2016-05"
+      endDate: "2024-02"
+      description: >
+        Co-founded micro-boutique (four attorneys) supporting startups and
+        seed-stage investors in all facets from formation through Series B.
+      highlights:
+        - "Advised >100 startups over seven years across full company lifecycle (formation through exit)"
+        - "Deal lead for targets and acquirers in strategic transactions totaling >$250M"
+        - "Supported diverse investment activities: SPV, triangle structures, offshore"
+        - "Led company-critical technology transfer initiatives, patent strategy, trademark enforcement"
+        - "Advised founders, companies, and investors in complex business litigation"
+
+    - title: "Associate, Corporate and Venture Financing"
+      company: "Gunderson Dettmer"
+      startDate: "2014-01"
+      endDate: "2016-06"
+      description: >
+        International firm specializing in the innovation economy (Pitchbook
+        ranked #1 global VC law firm). Corporate associate handling early
+        and late-stage financings.
+      highlights:
+        - "Represented company clients in financings from Series Seed through Series E and debt"
+        - "Represented private companies in strategic transactions including public-private mergers"
+        - "Analyzed past deal flow data from all fund clients creating a searchable database of economic terms across hundreds of portfolio company transactions"
+
+  education:
+    - institution: "Yale Law School"
+      degree: "Juris Doctor"
+      field: "Law"
+      graduationDate: "2015"
+    - institution: "University of Oxford"
+      degree: "Rhodes Scholar; DPhil"
+      field: "Experimental Psychology"
+      graduationDate: "2012"
+    - institution: "University of Wellington"
+      degree: "Fulbright Scholar"
+      field: "Cross-Cultural Psychology"
+      graduationDate: "2008"
+    - institution: "University of Oregon"
+      degree: "Bachelor of Arts"
+      field: "Psychology; Political Science"
+      graduationDate: "2006"
+
+  preferences:
+    remote: true
+    salaryMin: 150000
+    locations:
+      - "Santa Monica"
+      - "Los Angeles"
+      - "Culver City"
+      - "West Los Angeles"
+      - "Remote"
+    industries:
+      - "AI"
+      - "AI infrastructure"
+      - "Developer tools"
+      - "B2B SaaS"
+      - "Venture capital"
+      - "Asset management / family office"
+      - "Media and entertainment"
+      - "Legal tech"
+      - "Frontier technology"
+      - "Research-driven startups"
+      - "High-trust advisory businesses"
+    companySize: "startup"
+
+  targetTitles:
+    - "Chief of Staff"
+    - "Chief of Staff to CEO"
+    - "Chief of Staff to Managing Partner"
+    - "Director of Operations"
+    - "Head of Operations"
+    - "Business Operations Lead"
+    - "Strategic Operations Lead"
+    - "Head of Strategic Initiatives"
+    - "Corporate Development"
+    - "Business Affairs"
+    - "Partnerships and Strategic Initiatives"
+    - "Director of Special Projects"
+    - "Founder's Associate"
+
+  voice:
+    tone: >
+      Direct, sophisticated, analytically rigorous, and human.
+      Confident without puffery. Warm where appropriate, but never
+      needy, generic, or overly polished in a synthetic way.
+    avoidPhrases:
+      - "I'm passionate about"
+      - "synergy"
+      - "leverage"
+      - "dynamic self-starter"
+      - "results-driven professional"
+      - "go-getter"
+      - "rockstar"
+      - "ninja"
+      - "thrilled to apply"
+      - "team player with excellent communication skills"
+      - "fast-paced environment"
+      - "think outside the box"
+      - "unique blend of"
+      - "seasoned professional"
+    signaturePhrases:
+      - "high-judgment"
+      - "decision-ready"
+      - "operator"
+      - "judgment-heavy"
+      - "cross-functional"
+      - "structured action"
+      - "genuine fit"
+      - "natural extension"
+      - "I'm most useful when"
+      - "I tend to do well in environments where"
+
+  positioningGuidance: >
+    Frame the career not as a lack of focus, but as a consistent pattern
+    of being deployed into complex, high-trust situations where precision,
+    discretion, and execution matter. The EeroQ role is the clearest
+    Chief of Staff proof point — promoted from outside counsel to executive
+    CoS, ran everything from $10M+ in financing to IP licensing to office
+    buildout. Trace Machina shows the same pattern at a different stage:
+    sole director, 10x ARR, 7x legal cost reduction, SOC II. AGS Law
+    shows the ability to build and run your own thing. Do not overstate
+    hands-on software engineering experience — technical credibility is
+    real (MCP, AI tooling, developer infrastructure literacy), but the
+    strongest positioning is as a sophisticated operator with strong
+    AI/developer-tools literacy, not as a traditional engineer. The
+    combination of law, operations, grants, strategy, and advisory work
+    makes the profile especially strong for chief-of-staff, strategic
+    operations, investing-adjacent, and business-affairs-style roles.
+    The Rhodes, Fulbright, Yale Law, and Phi Beta Kappa credentials
+    signal intellectual horsepower without needing to belabor the point.
+
+  projects:
+    - name: "Archimedes"
+      description: "AI-powered job search engine built on MCP with parallel agents and observability"
+      role: "Founder / Architect"
+    - name: "Mrkt"
+      description: "Empirical research platform for analyzing public-company M&A agreements — 'Moneyball for transactional law'"
+      role: "Founder / Research lead"
+    - name: "Achilles"
+      description: "AI/software safety tooling including static analysis and audit-oriented subprojects (LLVM IR, MLIR)"
+      role: "Project lead"
+
+  additional_experience:
+    - title: "Board Member"
+      company: "St. Luke Foundation for Haiti (Hospital Network)"
+      startDate: "2015-09"
+      endDate: "2018-12"
+      description: "Advised on matters of legal compliance and fundraising."
+    - title: "Project Manager"
+      company: "Global Micro-Clinics Project, East Africa Initiative"
+      startDate: "2008-11"
+      endDate: "2010-06"
+      description: "Oversaw planning, financing and construction of a community health radio station in Western Kenya in collaboration with a global HIV initiative."
+    - title: "Founder and Director"
+      company: "Springfield Creative Community Project"
+      startDate: "2005-11"
+      endDate: "2007-06"
+      description: "Founded non-profit organization in Eugene and Springfield, Oregon, providing ongoing educational opportunities for local residents."
+
+agents:
+  concurrency: 5
+  timeoutMs: 45000
+  sources:
+    - ycombinator
+    - getro
+    - pallet
+
+observability:
+  traceSamplingRate: 1.0
+  metricsExport: console
+  decisionLogLevel: detailed
+  costTracking: true
+
+content:
+  model: claude-sonnet-4-20250514
+  temperature: 0.7
+  maxVariants: 3
+
+storage:
+  dbPath: "./data/archimedes.db"
