@@ -246,8 +246,8 @@ export class HNAgent extends BaseAgent {
     const engineeringTitleRx =
       /engineer|developer|\bdev\b|fullstack|frontend|backend|ios|android|ml\b|ai\b|sre\b|devops|data scientist/i;
     if (
-      profile.targetTitles.length > 0 &&
-      !profile.targetTitles.some((t) => engineeringTitleRx.test(t))
+      (profile.targetTitles ?? []).length > 0 &&
+      !(profile.targetTitles ?? []).some((t) => engineeringTitleRx.test(t))
     ) {
       return true;
     }

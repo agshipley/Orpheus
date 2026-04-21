@@ -452,9 +452,9 @@ Schema:
     // Any phrase from targetTitles found in the job title → strong boost.
     // This is the highest-weighted single signal so profile-aligned roles
     // always surface above keyword-matched-but-wrong-level results.
-    if (profile.targetTitles.length > 0) {
+    if ((profile.targetTitles ?? []).length > 0) {
       const jobTitleLower = job.title.toLowerCase();
-      const matches = profile.targetTitles.some((t) =>
+      const matches = (profile.targetTitles ?? []).some((t) =>
         jobTitleLower.includes(t.toLowerCase())
       );
       if (matches) score += 60;
