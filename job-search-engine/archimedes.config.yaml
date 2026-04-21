@@ -274,6 +274,7 @@ agents:
   concurrency: 5
   timeoutMs: 45000
   sources:
+    - waas
     - jobicy
     - ycombinator
     - getro

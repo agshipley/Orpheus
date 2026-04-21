@@ -464,6 +464,14 @@ Schema:
   ): number {
     let score = 0;
 
+    // ── Source quality bonus: WaaS = primary source (+10) ─────────
+    // Work at a Startup is the highest-signal source for this profile (YC
+    // companies, AI/startup focus). +10 ensures equivalent keyword matches
+    // from WaaS rank above Jobicy and HN results. Not a magic number:
+    // it's set to beat the remote-preference bonus (+10) that both sources
+    // could also earn, so WaaS wins any tie on remote roles.
+    if (job.source === "waas") score += 10;
+
     // ── Dominant signal: profile target title match (+60) ──────────
     // Any phrase from targetTitles found in the job title → strong boost.
     // This is the highest-weighted single signal so profile-aligned roles

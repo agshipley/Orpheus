@@ -9,6 +9,7 @@ export { GitHubAgent } from "./github_agent.js";
 export { HNAgent } from "./hn_agent.js";
 export { GetroAgent } from "./getro_agent.js";
 export { PalletAgent } from "./pallet_agent.js";
+export { WaaSAgent } from "./waas_agent.js";
 export { JobicyAgent } from "./jobicy_agent.js";
 
 import { BaseAgent } from "./base_agent.js";
@@ -18,6 +19,7 @@ import { GitHubAgent } from "./github_agent.js";
 import { HNAgent } from "./hn_agent.js";
 import { GetroAgent } from "./getro_agent.js";
 import { PalletAgent } from "./pallet_agent.js";
+import { WaaSAgent } from "./waas_agent.js";
 import { JobicyAgent } from "./jobicy_agent.js";
 import type { AgentSource, AgentConfig } from "../types.js";
 
@@ -31,6 +33,7 @@ const AGENT_REGISTRY: Record<
   ycombinator: HNAgent,
   getro: GetroAgent,
   pallet: PalletAgent,
+  waas: WaaSAgent,
   jobicy: JobicyAgent,
   custom: GitHubAgent,
 };
