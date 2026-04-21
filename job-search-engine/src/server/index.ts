@@ -24,6 +24,7 @@ import cors from "cors";
 import { existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { loadConfig } from "./config.js";
 
 // Route handlers
 import { searchHandler } from "./routes/search.js";
@@ -78,6 +79,27 @@ app.get("/api/metrics", metricsHandler);
 app.get("/api/decisions", decisionsHandler);
 
 app.get("/api/config/profile", profileHandler);
+
+// ─── Temporary debug endpoint — remove after profile-source confirmed ──
+app.get("/api/debug/profile", (_req, res) => {
+  const CONFIG_FILES = [
+    "./archimedes.config.yaml", "./archimedes.config.yml",
+    "./orpheus.config.yaml", "./orpheus.config.yml", "./config.yaml",
+  ];
+  const fileSource = CONFIG_FILES.find((p) => existsSync(p));
+  const source = fileSource
+    ? "file"
+    : process.env.ORPHEUS_PROFILE_YAML
+    ? "env"
+    : "defaults";
+  const { profile } = loadConfig();
+  res.json({
+    source,
+    fileUsed: fileSource ?? null,
+    targetTitles: profile.targetTitles,
+    avoidPhrasesLength: profile.voice?.avoidPhrases?.length ?? 0,
+  });
+});
 
 // ─── Health check ─────────────────────────────────────────────────
 
