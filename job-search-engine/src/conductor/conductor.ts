@@ -18,6 +18,7 @@ import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js
 import { createAgentPool } from "../agents/index.js";
 import type { BaseAgent } from "../agents/base_agent.js";
 import { scoreJob } from "./ranker.js";
+import { FeedbackStore } from "../storage/feedback_store.js";
 import type {
   Config,
   SearchQuery,
@@ -49,6 +50,37 @@ export interface SearchResult {
   };
 }
 
+// Preset wide-search query map: identity key → SearchQuery
+const WIDE_QUERIES: Record<string, SearchQuery> = {
+  operator: {
+    raw: "operations strategy policy management",
+    title: "operations",
+    skills: ["strategy", "operations", "policy", "management", "program"],
+    remote: false,
+    maxResults: 100,
+    industries: [],
+    excludeCompanies: [],
+  },
+  legal: {
+    raw: "legal counsel attorney policy compliance",
+    title: "legal",
+    skills: ["legal", "counsel", "compliance", "regulatory", "contracts"],
+    remote: false,
+    maxResults: 100,
+    industries: [],
+    excludeCompanies: [],
+  },
+  research: {
+    raw: "AI safety policy research governance",
+    title: "research",
+    skills: ["research", "policy", "AI safety", "governance", "analysis"],
+    remote: false,
+    maxResults: 100,
+    industries: [],
+    excludeCompanies: [],
+  },
+};
+
 export class Conductor {
   private client: Anthropic;
   private config: Config;
@@ -56,11 +88,19 @@ export class Conductor {
   private tracer = getTracer();
   private metrics = getMetrics();
   private decisionLog = getDecisionLog();
+  private _feedbackStore: FeedbackStore | null = null;
 
   constructor(config: Config, agentFactory: AgentFactory = createAgentPool) {
     this.config = config;
     this.client = new Anthropic();
     this.agentFactory = agentFactory;
+  }
+
+  private get feedbackStore(): FeedbackStore {
+    if (!this._feedbackStore) {
+      this._feedbackStore = new FeedbackStore(this.config.storage.dbPath);
+    }
+    return this._feedbackStore;
   }
 
   /**
@@ -159,6 +199,52 @@ export class Conductor {
           agentsSucceeded: agentResults.filter(
             (r) => r.metadata.errors.length === 0
           ).length,
+          totalTokensUsed: totalTokens,
+          estimatedCostUsd: this.estimateCost(totalTokens),
+        },
+      };
+    } catch (error) {
+      rootSpan.setError(error instanceof Error ? error.message : String(error));
+      rootSpan.end();
+      throw error;
+    }
+  }
+
+  /**
+   * Wide search: no LLM query parsing, no LLM re-ranking.
+   * Runs all agent sources with a preset query for one of the three identities.
+   * Returns up to 100 heuristically ranked results.
+   */
+  async searchWide(identityKey: string = "operator"): Promise<SearchResult> {
+    const rootSpan = this.tracer.startTrace("conductor.search_wide");
+    rootSpan.setAttribute("identity", identityKey);
+    const startTime = performance.now();
+
+    try {
+      const query: SearchQuery = WIDE_QUERIES[identityKey] ?? WIDE_QUERIES.operator;
+      const sources = this.config.agents.sources as AgentSource[];
+      const agentResults = await this.fanOutSearch(query, sources, rootSpan, this.config.profile);
+
+      const allJobs = agentResults.flatMap((r) => r.jobs);
+      const deduped = this.deduplicate(allJobs);
+      const ranked = this.heuristicRank(deduped, query).slice(0, 100);
+
+      const durationMs = Math.round(performance.now() - startTime);
+      rootSpan.setAttribute("duration_ms", durationMs);
+      rootSpan.end();
+
+      const totalTokens = agentResults.reduce((sum, r) => sum + r.metadata.tokensUsed, 0);
+      return {
+        traceId: rootSpan.traceId,
+        query,
+        jobs: ranked,
+        agentResults,
+        stats: {
+          totalFound: allJobs.length,
+          afterDedup: deduped.length,
+          durationMs,
+          agentsQueried: agentResults.length,
+          agentsSucceeded: agentResults.filter((r) => r.metadata.errors.length === 0).length,
           totalTokensUsed: totalTokens,
           estimatedCostUsd: this.estimateCost(totalTokens),
         },
@@ -375,10 +461,15 @@ Schema:
     const rest = heuristicRanked.slice(20);
 
     try {
+      const latestSummary = this.feedbackStore.getLatestSummary();
+      const preferencesSection = latestSummary
+        ? `\n\nLearned user preferences from behavioral feedback:\n${latestSummary.summaryJson}`
+        : "";
+
       const response = await this.client.messages.create({
         model: this.config.content.model,
         max_tokens: 2000,
-        system: `You are a job ranking assistant. Given a search query and a list of jobs, rank them by relevance. Consider: skill match, salary alignment, location preference, company quality, and role seniority match. Return a JSON array of job IDs in order of best match. JSON only, no fences.`,
+        system: `You are a job ranking assistant. Given a search query and a list of jobs, rank them by relevance. Consider: skill match, salary alignment, location preference, company quality, and role seniority match. Return a JSON array of job IDs in order of best match. JSON only, no fences.${preferencesSection}`,
         messages: [
           {
             role: "user",
@@ -447,9 +538,10 @@ Schema:
   private heuristicRank(jobs: JobListing[], query: SearchQuery): JobListing[] {
     const profile = this.config.profile;
     const orgAdjacency = this.config.org_adjacency;
+    const identityWeights = this.feedbackStore.getWeightsMap();
 
     const scored = jobs.map((job) => {
-      const jobScore = scoreJob(job, query, profile, orgAdjacency);
+      const jobScore = scoreJob(job, query, profile, orgAdjacency, identityWeights);
       return { job, jobScore };
     });
 

@@ -6,6 +6,8 @@ import type {
   DecisionLogEntry,
   CostSummary,
   CostEntry,
+  FeedbackStatus,
+  RankerWeight,
 } from "../types";
 
 // ─── Shared helpers ───────────────────────────────────────────────
@@ -377,6 +379,129 @@ function DecisionLog({
   );
 }
 
+// ─── Feedback Loop Status section ────────────────────────────────
+
+function FeedbackLoopStatus({ status }: { status: FeedbackStatus | null }) {
+  if (!status) return <Empty msg="Loading feedback status…" />;
+
+  const { stats, weights, latestSummary, recentCorrections } = status;
+  const byIdentity: Record<string, RankerWeight[]> = {};
+  for (const w of weights) {
+    if (!byIdentity[w.identity]) byIdentity[w.identity] = [];
+    byIdentity[w.identity].push(w);
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Rating histogram */}
+      <div className="rounded-lg border border-border-subtle bg-surface p-4 space-y-2">
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-zinc-400 font-mono">{stats.total} total ratings</span>
+          <span className="text-xs text-zinc-600">·</span>
+          <span className="text-xs text-zinc-600">{stats.correctionCount} identity corrections</span>
+        </div>
+        <div className="flex items-end gap-1.5 h-16">
+          {[2, 1, 0, -1, -2].map((v) => {
+            const count = stats.distribution[String(v)] ?? 0;
+            const max = Math.max(...Object.values(stats.distribution));
+            const pct = max > 0 ? (count / max) * 100 : 0;
+            const colorMap: Record<string, string> = {
+              "2": "bg-emerald-500", "1": "bg-blue-500", "0": "bg-zinc-500",
+              "-1": "bg-amber-500", "-2": "bg-red-500",
+            };
+            const labels: Record<string, string> = {
+              "2": "Love", "1": "Int.", "0": "Neu.", "-1": "No", "-2": "Never",
+            };
+            return (
+              <div key={v} className="flex-1 flex flex-col items-center gap-0.5">
+                <span className="text-[10px] text-zinc-600 tabular-nums">{count}</span>
+                <div className="w-full flex items-end" style={{ height: "40px" }}>
+                  <div
+                    className={`w-full rounded-sm ${colorMap[String(v)]}`}
+                    style={{ height: `${Math.max(2, pct)}%` }}
+                  />
+                </div>
+                <span className="text-[9px] text-zinc-700 font-mono">{labels[String(v)]}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Weights table */}
+      {weights.length > 0 && (
+        <div className="rounded-lg border border-border-subtle bg-surface p-4 space-y-3">
+          <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">Ranker weights</div>
+          {Object.entries(byIdentity).map(([identity, rows]) => (
+            <div key={identity}>
+              <div className="text-[10px] font-mono text-zinc-600 uppercase mb-1">{identity}</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="text-zinc-600 border-b border-border-subtle">
+                      <th className="text-left pb-1 pr-4 font-normal">Feature</th>
+                      <th className="text-right pb-1 pr-4 font-normal">Weight</th>
+                      <th className="text-right pb-1 pr-4 font-normal">Corr.</th>
+                      <th className="text-right pb-1 font-normal">N</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((w) => {
+                      const drift = w.weight - w.baseWeight;
+                      const dc = drift > 0.05 ? "text-emerald-400" : drift < -0.05 ? "text-red-400" : "text-zinc-400";
+                      return (
+                        <tr key={w.featureName} className="border-t border-border-subtle/40">
+                          <td className="py-0.5 pr-4 text-zinc-400 font-mono">{w.featureName}</td>
+                          <td className={`py-0.5 pr-4 text-right font-mono tabular-nums ${dc}`}>{w.weight.toFixed(3)}</td>
+                          <td className="py-0.5 pr-4 text-right font-mono tabular-nums text-zinc-600">
+                            {w.correlation !== null ? w.correlation.toFixed(3) : "—"}
+                          </td>
+                          <td className="py-0.5 text-right tabular-nums text-zinc-600">{w.sampleSize}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Latest preference summary */}
+      {latestSummary && (
+        <div className="rounded-lg border border-border-subtle bg-surface p-4 space-y-2">
+          <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">Latest preference summary</div>
+          <div className="text-[10px] text-zinc-600 font-mono">
+            {new Date(latestSummary.generatedAt).toLocaleString()} · {latestSummary.sampleSize} votes
+          </div>
+          <pre className="text-xs text-zinc-400 whitespace-pre-wrap font-mono bg-void rounded p-3 max-h-48 overflow-y-auto">
+            {latestSummary.summaryJson}
+          </pre>
+        </div>
+      )}
+
+      {/* Recent corrections */}
+      {recentCorrections.length > 0 && (
+        <div className="rounded-lg border border-border-subtle bg-surface p-4 space-y-2">
+          <div className="text-xs text-zinc-500 font-mono uppercase tracking-wider">Recent identity corrections</div>
+          <div className="space-y-1">
+            {recentCorrections.slice(0, 10).map((c, i) => (
+              <div key={i} className="flex items-center gap-2 text-xs text-zinc-500 font-mono">
+                <span className="text-zinc-700">{c.jobId.slice(0, 8)}</span>
+                <span className="text-zinc-600">{c.matchedIdentity ?? "?"}</span>
+                <span className="text-zinc-700">→</span>
+                <span className="text-zinc-300">{c.correctedIdentity ?? "?"}</span>
+                <span className="text-zinc-700 ml-auto">{new Date(c.votedAt).toLocaleDateString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Page ─────────────────────────────────────────────────────────
 
 export default function ObservatoryPage() {
@@ -385,21 +510,24 @@ export default function ObservatoryPage() {
   const [decisions, setDecisions] = useState<DecisionLogEntry[]>([]);
   const [costSummary, setCostSummary] = useState<CostSummary>({ totalUsd: 0, byModel: {}, byComponent: {}, entryCount: 0 });
   const [costEntries, setCostEntries] = useState<CostEntry[]>([]);
+  const [feedbackStatus, setFeedbackStatus] = useState<FeedbackStatus | null>(null);
   const [loading, setLoading]   = useState(true);
   const [refreshedAt, setRefreshedAt] = useState<Date | null>(null);
 
   const load = useCallback(async () => {
     try {
-      const [t, m, d] = await Promise.all([
+      const [t, m, d, fb] = await Promise.all([
         api.getTraces(10),
         api.getMetrics(),
         api.getDecisions({ limit: 50 }),
+        api.getFeedbackStatus(),
       ]);
       setTraces(t.traces);
       setMetrics(m.metrics);
       setDecisions(d.entries);
       setCostSummary(d.costSummary);
       setCostEntries(d.costEntries);
+      setFeedbackStatus(fb);
       setRefreshedAt(new Date());
     } catch {
       // Keep stale data on error; don't wipe the page
@@ -468,6 +596,12 @@ export default function ObservatoryPage() {
             <DecisionLog entries={decisions} components={components} />
           </section>
         </div>
+
+        {/* Feedback Loop Status */}
+        <section>
+          <SectionHeader title="Feedback Loop Status" />
+          <FeedbackLoopStatus status={feedbackStatus} />
+        </section>
       </div>
     </div>
   );

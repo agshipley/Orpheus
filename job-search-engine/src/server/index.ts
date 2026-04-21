@@ -27,11 +27,18 @@ import { fileURLToPath } from "url";
 
 // Route handlers
 import { searchHandler } from "./routes/search.js";
+import { searchWideHandler } from "./routes/search_wide.js";
 import { applyHandler } from "./routes/apply.js";
 import { listJobsHandler, getJobHandler } from "./routes/jobs.js";
 import { tracesHandler, metricsHandler, decisionsHandler } from "./routes/observability.js";
 import { profileHandler } from "./routes/profile.js";
 import { createApplicationHandler } from "./routes/applications.js";
+import {
+  recordFeedbackHandler,
+  retuneWeightsHandler,
+  regenerateSummaryHandler,
+  feedbackStatusHandler,
+} from "./routes/feedback.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -67,8 +74,14 @@ app.use((req, _res, next) => {
 // ─── API Routes ───────────────────────────────────────────────────
 
 app.post("/api/search", searchHandler);
+app.post("/api/search/wide", searchWideHandler);
 app.post("/api/apply", applyHandler);
 app.post("/api/applications", createApplicationHandler);
+
+app.post("/api/feedback", recordFeedbackHandler);
+app.post("/api/feedback/retune-weights", retuneWeightsHandler);
+app.post("/api/feedback/regenerate-summary", regenerateSummaryHandler);
+app.get("/api/feedback/status", feedbackStatusHandler);
 
 app.get("/api/jobs", listJobsHandler);
 app.get("/api/jobs/:id", getJobHandler);

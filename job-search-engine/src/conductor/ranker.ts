@@ -11,6 +11,7 @@
  */
 
 import type { JobListing, SearchQuery, UserProfile, IdentityConfig, IdentityKey, Config } from "../types.js";
+import type { FeatureWeights, IdentityWeightsMap } from "../storage/feedback_store.js";
 
 export type { IdentityKey };
 
@@ -37,10 +38,12 @@ export function scoreForIdentity(
   identityKey: IdentityKey,
   identity: IdentityConfig,
   query: SearchQuery,
-  orgAdjacency?: Config["org_adjacency"]
+  orgAdjacency?: Config["org_adjacency"],
+  featureWeights?: FeatureWeights
 ): IdentityScore {
   let score = 0;
   const reasons: string[] = [];
+  const w = featureWeights ?? {};
 
   // ── +60 target title match ─────────────────────────────────────
   if (identity.target_titles.length > 0) {
@@ -49,8 +52,9 @@ export function scoreForIdentity(
       jobTitleLower.includes(t.toLowerCase())
     );
     if (matched) {
-      score += 60;
-      reasons.push(`Title match: "${matched}" (+60)`);
+      const pts = Math.round(60 * (w.title_match ?? 1.0));
+      score += pts;
+      reasons.push(`Title match: "${matched}" (+${pts})`);
     }
   }
 
@@ -60,7 +64,7 @@ export function scoreForIdentity(
     const matchCount = query.skills.filter((s) =>
       descLower.includes(s.toLowerCase())
     ).length;
-    const pts = Math.round((matchCount / query.skills.length) * 40);
+    const pts = Math.round((matchCount / query.skills.length) * 40 * (w.skill_match ?? 1.0));
     if (pts > 0) {
       score += pts;
       reasons.push(`Skill match: ${matchCount}/${query.skills.length} (+${pts})`);
@@ -72,7 +76,7 @@ export function scoreForIdentity(
     const titleWords = query.title.toLowerCase().split(/\s+/);
     const jobTitleLower = job.title.toLowerCase();
     const matched = titleWords.filter((w) => jobTitleLower.includes(w)).length;
-    const pts = Math.round((matched / titleWords.length) * 30);
+    const pts = Math.round((matched / titleWords.length) * 30 * (w.query_title_match ?? 1.0));
     if (pts > 0) {
       score += pts;
       reasons.push(`Query title: ${matched}/${titleWords.length} words (+${pts})`);
@@ -81,34 +85,42 @@ export function scoreForIdentity(
 
   // ── +15/+8 salary ──────────────────────────────────────────────
   if (query.salaryMin && job.salary?.min) {
+    const salaryW = w.salary_match ?? 1.0;
     if (job.salary.min >= query.salaryMin) {
-      score += 15;
-      reasons.push(`Salary ≥ min: $${Math.round(job.salary.min / 1000)}k (+15)`);
+      const pts = Math.round(15 * salaryW);
+      score += pts;
+      reasons.push(`Salary ≥ min: $${Math.round(job.salary.min / 1000)}k (+${pts})`);
     } else if (job.salary.min >= query.salaryMin * 0.9) {
-      score += 8;
-      reasons.push(`Salary near min: $${Math.round(job.salary.min / 1000)}k (+8)`);
+      const pts = Math.round(8 * salaryW);
+      score += pts;
+      reasons.push(`Salary near min: $${Math.round(job.salary.min / 1000)}k (+${pts})`);
     }
   }
 
   // ── +10 remote ─────────────────────────────────────────────────
   if (query.remote && job.remote) {
-    score += 10;
-    reasons.push("Remote match (+10)");
+    const pts = Math.round(10 * (w.remote_match ?? 1.0));
+    score += pts;
+    reasons.push(`Remote match (+${pts})`);
   }
 
   // ── +5/3/1 recency ─────────────────────────────────────────────
   if (job.postedAt) {
     const daysAgo =
       (Date.now() - new Date(job.postedAt).getTime()) / (1000 * 60 * 60 * 24);
+    const recencyW = w.recency ?? 1.0;
     if (daysAgo < 3) {
-      score += 5;
-      reasons.push(`Posted ${Math.round(daysAgo)}d ago (+5)`);
+      const pts = Math.round(5 * recencyW);
+      score += pts;
+      reasons.push(`Posted ${Math.round(daysAgo)}d ago (+${pts})`);
     } else if (daysAgo < 7) {
-      score += 3;
-      reasons.push(`Posted ${Math.round(daysAgo)}d ago (+3)`);
+      const pts = Math.round(3 * recencyW);
+      score += pts;
+      reasons.push(`Posted ${Math.round(daysAgo)}d ago (+${pts})`);
     } else if (daysAgo < 14) {
-      score += 1;
-      reasons.push(`Posted ${Math.round(daysAgo)}d ago (+1)`);
+      const pts = Math.round(1 * recencyW);
+      score += pts;
+      reasons.push(`Posted ${Math.round(daysAgo)}d ago (+${pts})`);
     }
   }
 
@@ -117,6 +129,7 @@ export function scoreForIdentity(
   // first match so a tier-1 org doesn't stack with lower tiers.
   if (identityKey === "research" && orgAdjacency) {
     const companyLower = job.company.toLowerCase();
+    const orgW = w.org_adjacency ?? 1.0;
     const tiers = [
       { label: "tier_1 (frontier AI)", tier: orgAdjacency.tier_1_frontier_ai },
       { label: "tier_2 (AI policy)",   tier: orgAdjacency.tier_2_ai_policy },
@@ -129,8 +142,9 @@ export function scoreForIdentity(
         companyLower.includes(org.toLowerCase())
       );
       if (match) {
-        score += tier.boost;
-        reasons.push(`Org adjacency ${label}: "${match}" (+${tier.boost})`);
+        const pts = Math.round(tier.boost * orgW);
+        score += pts;
+        reasons.push(`Org adjacency ${label}: "${match}" (+${pts})`);
         break;
       }
     }
@@ -150,8 +164,9 @@ export function scoreForIdentity(
     const descLower = job.description.toLowerCase();
     const hits = legalSignals.filter((s) => descLower.includes(s));
     if (hits.length > 0) {
-      score += 25;
-      reasons.push(`Legal credential signals: ${hits.join(", ")} (+25)`);
+      const pts = Math.round(25 * (w.legal_signals ?? 1.0));
+      score += pts;
+      reasons.push(`Legal credential signals: ${hits.join(", ")} (+${pts})`);
     }
   }
 
@@ -171,7 +186,8 @@ export function scoreJob(
   job: JobListing,
   query: SearchQuery,
   profile: UserProfile,
-  orgAdjacency: Config["org_adjacency"]
+  orgAdjacency: Config["org_adjacency"],
+  identityWeights?: IdentityWeightsMap
 ): JobScore {
   const identities = profile.identities;
 
@@ -191,9 +207,9 @@ export function scoreJob(
   }
 
   const identityScores: Record<IdentityKey, IdentityScore> = {
-    operator: scoreForIdentity(job, "operator", identities.operator, query, orgAdjacency),
-    legal:    scoreForIdentity(job, "legal",    identities.legal,    query, orgAdjacency),
-    research: scoreForIdentity(job, "research", identities.research, query, orgAdjacency),
+    operator: scoreForIdentity(job, "operator", identities.operator, query, orgAdjacency, identityWeights?.operator),
+    legal:    scoreForIdentity(job, "legal",    identities.legal,    query, orgAdjacency, identityWeights?.legal),
+    research: scoreForIdentity(job, "research", identities.research, query, orgAdjacency, identityWeights?.research),
   };
 
   // MAX wins — take the highest-scoring identity

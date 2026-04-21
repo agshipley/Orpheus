@@ -151,6 +151,69 @@ export interface ApplyResult {
   email?: GeneratedContent;
 }
 
+// ─── Feedback / tuning types ─────────────────────────────────────
+
+export type IdentityKey = "operator" | "legal" | "research";
+
+export interface FeedbackStats {
+  total: number;
+  distribution: Record<string, number>; // "-2".."+2" → count
+  correctionCount: number;
+}
+
+export interface RankerWeight {
+  featureName: string;
+  identity: string;
+  weight: number;
+  baseWeight: number;
+  updatedAt: string;
+  sampleSize: number;
+  correlation: number | null;
+}
+
+export interface PreferenceSummary {
+  id: string;
+  generatedAt: string;
+  voteWindowStart: string;
+  voteWindowEnd: string;
+  sampleSize: number;
+  summaryJson: string;
+  model: string;
+}
+
+export interface FeedbackRecord {
+  id: string;
+  jobId: string;
+  jobTitle?: string | null;
+  jobCompany?: string | null;
+  rating: number;
+  matchedIdentity: string | null;
+  correctedIdentity: string | null;
+  votedAt: string;
+  searchQuery: string | null;
+  featuresJson: string | null;
+}
+
+export interface FeedbackStatus {
+  stats: FeedbackStats;
+  weights: RankerWeight[];
+  latestSummary: PreferenceSummary | null;
+  recentCorrections: Array<{
+    jobId: string;
+    matchedIdentity: string | null;
+    correctedIdentity: string | null;
+    votedAt: string;
+  }>;
+  recentFeedback: FeedbackRecord[];
+}
+
+export interface SubmitFeedbackResponse {
+  id: string;
+  total: number;
+  autoRetuned: boolean;
+  autoSummarized: boolean;
+}
+
 // ─── Tracker / Kanban types ───────────────────────────────────────
 
 export type KanbanStatus = "saved" | "applied" | "interview" | "offer" | "rejected";

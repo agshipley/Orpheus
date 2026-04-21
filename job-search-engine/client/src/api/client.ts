@@ -8,6 +8,8 @@ import type {
   DecisionLogEntry,
   CostSummary,
   CostEntry,
+  FeedbackStatus,
+  SubmitFeedbackResponse,
 } from "../types";
 
 const BASE = "/api";
@@ -92,6 +94,30 @@ export const saveGeneratedContent = (params: {
   confidence: number;
 }): Promise<{ id: string; jobId: string }> =>
   req("/applications", json(params));
+
+// ─── Feedback / Tuning ────────────────────────────────────────────
+
+export const searchWide = (identity: "operator" | "legal" | "research"): Promise<SearchResult> =>
+  req("/search/wide", json({ identity }));
+
+export const submitFeedback = (params: {
+  jobId: string;
+  rating: number;
+  matchedIdentity?: string;
+  correctedIdentity?: string;
+  searchQuery?: string;
+  identityReasons?: Record<string, string[]>;
+}): Promise<SubmitFeedbackResponse> =>
+  req("/feedback", json(params));
+
+export const retuneWeights = (): Promise<{ adjustments: unknown[] }> =>
+  req("/feedback/retune-weights", json({}));
+
+export const regenerateSummary = (): Promise<{ summary: unknown }> =>
+  req("/feedback/regenerate-summary", json({}));
+
+export const getFeedbackStatus = (): Promise<FeedbackStatus> =>
+  req("/feedback/status");
 
 // ─── Profile ──────────────────────────────────────────────────────
 

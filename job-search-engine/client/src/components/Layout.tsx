@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 const NAV = [
   { to: "/search",      label: "Search",      icon: SearchIcon },
   { to: "/tracker",     label: "Tracker",     icon: KanbanIcon },
+  { to: "/tune",        label: "Tune",        icon: TuneIcon },
   { to: "/observatory", label: "Observatory", icon: RadarIcon },
 ] as const;
 
@@ -63,6 +64,14 @@ function KanbanIcon({ className }: { className?: string }) {
       <rect x="1" y="2" width="4" height="9" rx="1" />
       <rect x="6" y="2" width="4" height="12" rx="1" />
       <rect x="11" y="2" width="4" height="6" rx="1" />
+    </svg>
+  );
+}
+
+function TuneIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M2 4h2m0 0a2 2 0 004 0m-4 0a2 2 0 014 0m0 0h6M2 8h6m0 0a2 2 0 004 0m-4 0a2 2 0 014 0m0 0h2M2 12h2m0 0a2 2 0 004 0m-4 0a2 2 0 014 0m0 0h6" strokeLinecap="round" />
     </svg>
   );
 }
