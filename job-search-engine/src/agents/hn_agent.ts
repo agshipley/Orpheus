@@ -151,7 +151,7 @@ export class HNAgent extends BaseAgent {
     span.addEvent("hn.comments.fetched", { fetched: comments.length });
 
     // 4. Build keyword list from the query
-    const keywords = this.buildKeywords(query);
+    const { phrases, words } = this.buildKeywords(query);
 
     // Determine if profile indicates a non-engineering / ops / leadership focus
     const profile = this.config.profile;
@@ -168,10 +168,12 @@ export class HNAgent extends BaseAgent {
       const text = htmlToText(comment.text!);
       if (!text) continue;
 
-      // Keyword filter — at least one keyword must appear in the text
-      if (keywords.length > 0) {
+      // Keyword filter: phrase match (any phrase) OR all individual words present
+      if (phrases.length > 0 || words.length > 0) {
         const lower = text.toLowerCase();
-        if (!keywords.some((kw) => lower.includes(kw))) continue;
+        const phraseMatch = phrases.length > 0 && phrases.some((ph) => lower.includes(ph));
+        const wordMatch = words.length > 0 && words.every((w) => lower.includes(w));
+        if (!phraseMatch && !wordMatch) continue;
       }
 
       // Remote filter from query
@@ -273,33 +275,39 @@ export class HNAgent extends BaseAgent {
   }
 
   /**
-   * Build a deduplicated, lowercased list of meaningful search keywords.
-   * Draws from: query.title words, query.skills, then query.raw as fallback.
+   * Build a deduplicated keyword list for matching HN comments.
+   * Returns { phrases, words } — phrases are checked first (full phrase match),
+   * words are used as fallback (require ALL to appear).
    */
-  private buildKeywords(query: SearchQuery): string[] {
+  private buildKeywords(query: SearchQuery): { phrases: string[]; words: string[] } {
     const stopWords = new Set([
       "the", "and", "for", "with", "that", "this", "from", "have",
       "are", "was", "will", "can", "our", "you", "your", "but", "not",
+      "of", "in", "at", "to", "by", "an", "a", "is", "it", "be", "or",
+      "as", "on", "up",
     ]);
 
-    const raw: string[] = [];
-
-    if (query.title) {
-      raw.push(...query.title.split(/\s+/));
-    }
-    raw.push(...query.skills);
-
-    if (raw.length === 0 && query.raw) {
-      raw.push(...query.raw.split(/\s+/));
+    const phrases: string[] = [];
+    if (query.title && query.title.trim().split(/\s+/).length >= 2) {
+      phrases.push(query.title.toLowerCase().trim());
     }
 
-    return [
+    const wordSources: string[] = [];
+    if (query.title) wordSources.push(...query.title.split(/\s+/));
+    wordSources.push(...query.skills);
+    if (wordSources.length === 0 && query.raw) {
+      wordSources.push(...query.raw.split(/\s+/));
+    }
+
+    const words = [
       ...new Set(
-        raw
+        wordSources
           .map((w) => w.toLowerCase().replace(/[^a-z0-9+#.]/g, ""))
-          .filter((w) => w.length >= 2 && !stopWords.has(w))
+          .filter((w) => w.length >= 3 && !stopWords.has(w))
       ),
     ];
+
+    return { phrases, words };
   }
 
   /**
@@ -330,26 +338,9 @@ export class HNAgent extends BaseAgent {
     const remote =
       textLower.includes("remote") || textLower.includes("distributed");
 
-    // Location — first pipe segment that isn't a keyword or URL
-    const locationStops = new Set([
-      "remote", "onsite", "on-site", "hybrid", "full-time", "fulltime",
-      "part-time", "parttime", "contract", "freelance", "intern", "internship",
-    ]);
-    const location =
-      parts.slice(1).find((p) => {
-        const pl = p.toLowerCase();
-        return (
-          !locationStops.has(pl) &&
-          !/remote/i.test(p) &&
-          p.length >= 2 &&
-          p.length <= 80 &&
-          !/^https?:\/\//.test(p)
-        );
-      }) ?? "";
-
     // Title — look for role words in any pipe segment
     const roleRx =
-      /engineer|developer|\bdev\b|designer|manager|product|data|ml\b|ai\b|devops|fullstack|full.?stack|frontend|front.?end|backend|back.?end|ios\b|android|mobile|\bqa\b|\bsre\b|reliability|cto|vp\b|director|\blead\b|scientist|analyst|architect|researcher/i;
+      /engineer|developer|\bdev\b|designer|manager|product|data|ml\b|ai\b|devops|fullstack|full.?stack|frontend|front.?end|backend|back.?end|ios\b|android|mobile|\bqa\b|\bsre\b|reliability|cto|vp\b|director|\blead\b|scientist|analyst|architect|researcher|chief of staff|operations|strategy|bizops|biz ops|founding/i;
 
     const rolePart = parts.slice(1).find((p) => roleRx.test(p));
     const title = rolePart
@@ -357,6 +348,54 @@ export class HNAgent extends BaseAgent {
       : roleRx.test(firstLine)
       ? firstLine.slice(0, 120)
       : `Hiring at ${company}`;
+
+    // Location — first pipe segment that looks like a place, not a role or keyword
+    const locationStops = new Set([
+      "remote", "onsite", "on-site", "hybrid", "full-time", "fulltime",
+      "part-time", "parttime", "contract", "freelance", "intern", "internship",
+      "visa", "h1b", "equity", "benefits",
+    ]);
+    const location =
+      parts.slice(1).find((p) => {
+        const pl = p.toLowerCase();
+        return (
+          !locationStops.has(pl) &&
+          !/remote/i.test(p) &&
+          !roleRx.test(p) &&
+          p.length >= 2 &&
+          p.length <= 60 &&
+          !/^https?:\/\//.test(p) &&
+          !/\$/.test(p)
+        );
+      }) ?? "";
+
+    // Salary — parse common patterns: $150k, $100k-$150k, $100,000, etc.
+    const salaryRx =
+      /\$\s*(\d{2,3})[kK](?:\s*[-–]\s*\$?\s*(\d{2,3})[kK])?|\$\s*(\d{3,6})(?:\s*[-–]\s*\$?\s*(\d{3,6}))?/;
+    const salaryMatch = text.match(salaryRx);
+    let salary: JobListing["salary"] | undefined;
+    if (salaryMatch) {
+      const parseVal = (s: string | undefined): number | undefined => {
+        if (!s) return undefined;
+        const n = parseInt(s.replace(/,/g, ""), 10);
+        return n < 1000 ? n * 1000 : n;
+      };
+      if (salaryMatch[1]) {
+        salary = {
+          min: parseVal(salaryMatch[1]),
+          max: parseVal(salaryMatch[2]),
+          currency: "USD",
+          period: "yearly",
+        };
+      } else if (salaryMatch[3]) {
+        salary = {
+          min: parseVal(salaryMatch[3]),
+          max: parseVal(salaryMatch[4]),
+          currency: "USD",
+          period: "yearly",
+        };
+      }
+    }
 
     // URL — first https link in text, or HN item permalink
     const urlMatch = text.match(/https?:\/\/[^\s<>"']+/);
@@ -372,6 +411,7 @@ export class HNAgent extends BaseAgent {
       company,
       location,
       remote,
+      salary,
       description: text,
       requirements: [],
       url,

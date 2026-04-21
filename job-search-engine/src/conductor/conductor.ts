@@ -434,11 +434,16 @@ Schema:
 
   private heuristicRank(jobs: JobListing[], query: SearchQuery): JobListing[] {
     const profile = this.config.profile;
-    return [...jobs].sort((a, b) => {
-      const scoreA = this.heuristicScore(a, query, profile);
-      const scoreB = this.heuristicScore(b, query, profile);
-      return scoreB - scoreA;
-    });
+    const scored = jobs.map((job) => ({
+      job,
+      score: this.heuristicScore(job, query, profile),
+    }));
+    scored.sort((a, b) => b.score - a.score);
+    const maxScore = scored[0]?.score ?? 1;
+    return scored.map(({ job, score }) => ({
+      ...job,
+      matchScore: maxScore > 0 ? Math.min(1, score / maxScore) : 0,
+    }));
   }
 
   private heuristicScore(

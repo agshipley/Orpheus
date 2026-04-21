@@ -243,6 +243,20 @@ export default function JobDetailPanel({
             </a>
           )}
         </div>
+
+        {/* Inline generation errors — shown here so they're visible without scrolling */}
+        {Object.entries(errors).some(([, v]) => v) && (
+          <div className="mt-3 space-y-1.5">
+            {(["resume", "cover_letter", "email"] as GenType[]).map((type) =>
+              errors[type] ? (
+                <div key={type} className="flex items-center gap-2 text-xs text-red-400 px-3 py-2 bg-red-950/30 rounded-md">
+                  <span className="flex-1 min-w-0 truncate">{errors[type]}</span>
+                  <button onClick={() => generate(type)} className="text-red-400 underline shrink-0">Retry</button>
+                </div>
+              ) : null
+            )}
+          </div>
+        )}
       </div>
 
       {/* Scrollable body */}
@@ -290,20 +304,13 @@ export default function JobDetailPanel({
         {(["resume", "cover_letter", "email"] as GenType[]).map((type) => {
           const key = type === "cover_letter" ? "coverLetter" : type;
           const content = results[key as keyof ApplyResult] as { variants: ContentVariant[] } | undefined;
-          const err = errors[type];
           const label = type === "cover_letter" ? "Cover Letter" : type === "resume" ? "Resume" : "Outreach Email";
-          if (!content && !err) return null;
+          if (!content) return null;
           return (
             <section key={type}>
               <h3 className="text-[10px] font-semibold text-zinc-600 tracking-widests uppercase mb-2">
                 Generated {label}
               </h3>
-              {err && (
-                <div className="flex items-center gap-2 text-xs text-red-400 px-3 py-2 bg-red-950/30 rounded-md">
-                  <span className="flex-1">{err}</span>
-                  <button onClick={() => generate(type)} className="text-red-400 underline shrink-0">Retry</button>
-                </div>
-              )}
               {content && (
                 <div className="space-y-2">
                   {content.variants.map((v, i) => (

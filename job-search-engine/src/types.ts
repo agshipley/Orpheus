@@ -288,7 +288,7 @@ export const ConfigSchema = z.object({
     costTracking: z.boolean().default(true),
   }),
   content: z.object({
-    model: z.string().default("claude-sonnet-4-20250514"),
+    model: z.string().default("claude-sonnet-4-6"),
     temperature: z.number().default(0.7),
     maxVariants: z.number().default(3),
   }),
