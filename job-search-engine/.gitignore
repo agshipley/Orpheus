@@ -9,3 +9,4 @@ coverage/
 .DS_Store
 archimedes.config.yaml
 archimedes.config.yml
+.claude/settings.local.json

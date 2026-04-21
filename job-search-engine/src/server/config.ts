@@ -49,11 +49,44 @@ const CONFIG_PATHS = [
   "./config.yaml",
 ];
 
+function normalizeProfileKeys(raw: Record<string, unknown>): Record<string, unknown> {
+  const profile = raw.profile as Record<string, unknown> | undefined;
+  if (!profile) return raw;
+
+  const renames: Record<string, string> = {
+    target_titles:       "targetTitles",
+    positioning_guidance: "positioningGuidance",
+    additional_experience: "additionalExperience",
+  };
+  for (const [from, to] of Object.entries(renames)) {
+    if (profile[from] !== undefined && profile[to] === undefined) {
+      profile[to] = profile[from];
+      delete profile[from];
+    }
+  }
+
+  const voice = profile.voice as Record<string, unknown> | undefined;
+  if (voice) {
+    const voiceRenames: Record<string, string> = {
+      avoid_phrases:     "avoidPhrases",
+      signature_phrases: "signaturePhrases",
+    };
+    for (const [from, to] of Object.entries(voiceRenames)) {
+      if (voice[from] !== undefined && voice[to] === undefined) {
+        voice[to] = voice[from];
+        delete voice[from];
+      }
+    }
+  }
+
+  return { ...raw, profile };
+}
+
 export function loadConfig(): Config {
   for (const path of CONFIG_PATHS) {
     if (existsSync(path)) {
       const raw = readFileSync(path, "utf-8");
-      const parsed = parseYaml(raw);
+      const parsed = normalizeProfileKeys(parseYaml(raw));
       return ConfigSchema.parse(parsed);
     }
   }
