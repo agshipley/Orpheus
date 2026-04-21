@@ -126,9 +126,9 @@ export class HNAgent extends BaseAgent {
       commentCount: kids.length,
     });
 
-    // 3. Fetch comments in parallel — cap at 400 to stay reasonable
-    const fetchLimit = pLimit(12);
-    const toFetch = kids.slice(0, 400);
+    // 3. Fetch all top-level comments in parallel (Who is Hiring threads ~600-800)
+    const fetchLimit = pLimit(20);
+    const toFetch = kids;
 
     const comments = (
       await Promise.all(
@@ -150,7 +150,7 @@ export class HNAgent extends BaseAgent {
 
     span.addEvent("hn.comments.fetched", { fetched: comments.length });
 
-    // 4. Build keyword list from the query
+    // 4. Build keyword list from the query (includes profile targetTitles as phrases)
     const { phrases, words } = this.buildKeywords(query);
 
     // Determine if profile indicates a non-engineering / ops / leadership focus
@@ -168,12 +168,17 @@ export class HNAgent extends BaseAgent {
       const text = htmlToText(comment.text!);
       if (!text) continue;
 
-      // Keyword filter: phrase match (any phrase) OR all individual words present
+      // Keyword filter:
+      // - When phrases are available (query title + all profile targetTitles), use
+      //   phrase-only matching for precision. Any phrase hit = include.
+      // - Fall back to any-word matching only when no phrases are defined.
       if (phrases.length > 0 || words.length > 0) {
         const lower = text.toLowerCase();
-        const phraseMatch = phrases.length > 0 && phrases.some((ph) => lower.includes(ph));
-        const wordMatch = words.length > 0 && words.every((w) => lower.includes(w));
-        if (!phraseMatch && !wordMatch) continue;
+        if (phrases.length > 0) {
+          if (!phrases.some((ph) => lower.includes(ph))) continue;
+        } else {
+          if (!words.some((w) => lower.includes(w))) continue;
+        }
       }
 
       // Remote filter from query
@@ -264,7 +269,7 @@ export class HNAgent extends BaseAgent {
   private isPureEngineeringPost(text: string): boolean {
     const firstLine = text.split("\n")[0].toLowerCase();
     const isEngineeringTitle =
-      /\b(software engineer|backend engineer|frontend engineer|fullstack engineer|ml engineer|data engineer|sre|devops engineer)\b/.test(
+      /\b(software engineer|backend engineer|frontend engineer|fullstack engineer|ml engineer|data engineer|staff engineer|principal engineer|sre|devops engineer|platform engineer|infrastructure engineer)\b/.test(
         firstLine
       );
     const hasLeadershipSignal =
@@ -276,22 +281,36 @@ export class HNAgent extends BaseAgent {
 
   /**
    * Build a deduplicated keyword list for matching HN comments.
-   * Returns { phrases, words } — phrases are checked first (full phrase match),
-   * words are used as fallback (require ALL to appear).
+   *
+   * phrases: full multi-word strings checked via substring match (high-precision)
+   * words: individual tokens, any-one match (broad recall)
+   *
+   * Profile targetTitles are added as phrases so a search for "chief of staff"
+   * also surfaces posts matching "head of operations", "biz ops", etc.
    */
   private buildKeywords(query: SearchQuery): { phrases: string[]; words: string[] } {
     const stopWords = new Set([
       "the", "and", "for", "with", "that", "this", "from", "have",
       "are", "was", "will", "can", "our", "you", "your", "but", "not",
       "of", "in", "at", "to", "by", "an", "a", "is", "it", "be", "or",
-      "as", "on", "up",
+      "as", "on", "up", "we", "us", "if",
     ]);
 
     const phrases: string[] = [];
+
+    // Primary phrase: the full query title (e.g. "chief of staff")
     if (query.title && query.title.trim().split(/\s+/).length >= 2) {
       phrases.push(query.title.toLowerCase().trim());
     }
 
+    // Also include profile targetTitles as phrases so adjacent roles surface
+    const profile = this.config.profile;
+    for (const t of profile?.targetTitles ?? []) {
+      const tl = t.toLowerCase().trim();
+      if (tl.length >= 3 && !phrases.includes(tl)) phrases.push(tl);
+    }
+
+    // Individual words for broad any-one fallback
     const wordSources: string[] = [];
     if (query.title) wordSources.push(...query.title.split(/\s+/));
     wordSources.push(...query.skills);
@@ -303,7 +322,7 @@ export class HNAgent extends BaseAgent {
       ...new Set(
         wordSources
           .map((w) => w.toLowerCase().replace(/[^a-z0-9+#.]/g, ""))
-          .filter((w) => w.length >= 3 && !stopWords.has(w))
+          .filter((w) => w.length >= 4 && !stopWords.has(w))
       ),
     ];
 
@@ -338,11 +357,19 @@ export class HNAgent extends BaseAgent {
     const remote =
       textLower.includes("remote") || textLower.includes("distributed");
 
-    // Title — look for role words in any pipe segment
+    // Title extraction order:
+    // 1. Pipe segment that matches a profile targetTitle phrase (highest priority)
+    // 2. Pipe segment that matches general role keywords
+    // 3. Full first line if it looks like a role description
+    // 4. "Hiring at Company"
     const roleRx =
       /engineer|developer|\bdev\b|designer|manager|product|data|ml\b|ai\b|devops|fullstack|full.?stack|frontend|front.?end|backend|back.?end|ios\b|android|mobile|\bqa\b|\bsre\b|reliability|cto|vp\b|director|\blead\b|scientist|analyst|architect|researcher|chief of staff|operations|strategy|bizops|biz ops|founding/i;
 
-    const rolePart = parts.slice(1).find((p) => roleRx.test(p));
+    const profileTargets = (this.config.profile?.targetTitles ?? []).map(t => t.toLowerCase());
+    const targetPart = parts.slice(1).find((p) =>
+      profileTargets.some((tt) => p.toLowerCase().includes(tt))
+    );
+    const rolePart = targetPart ?? parts.slice(1).find((p) => roleRx.test(p));
     const title = rolePart
       ? `${rolePart.trim()} at ${company}`
       : roleRx.test(firstLine)
