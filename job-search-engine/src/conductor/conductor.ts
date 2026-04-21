@@ -297,11 +297,22 @@ Schema:
     // Wait for all agents (with timeout)
     const results = await Promise.allSettled(promises);
 
-    return results
+    const settled = results
       .filter(
         (r): r is PromiseFulfilledResult<AgentResult> => r.status === "fulfilled"
       )
       .map((r) => r.value);
+
+    // Log per-source hit counts so Observatory can show fan-out breakdown
+    for (const r of settled) {
+      parentSpan.addEvent("agent.source.hits", {
+        source: r.source,
+        hits: r.jobs.length,
+        errored: r.metadata.errors.length > 0,
+      });
+    }
+
+    return settled;
   }
 
   // ─── Deduplication ──────────────────────────────────────────────

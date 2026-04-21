@@ -35,6 +35,9 @@ function SourceBadge({ source }: { source: string }) {
     linkedin: "LI",
     indeed: "IN",
     github: "GH",
+    jobicy: "JB",
+    getro: "GT",
+    pallet: "PL",
     custom: "—",
   };
   return (
