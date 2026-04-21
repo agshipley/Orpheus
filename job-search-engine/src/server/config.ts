@@ -1,19 +1,18 @@
 /**
  * Shared config + .env loader for the Express server.
  *
- * Config file priority (first found wins):
- *   archimedes.config.yaml   ← personal profile, gitignored
- *   archimedes.config.yml
- *   orpheus.config.yaml
- *   orpheus.config.yml
- *   config.yaml
+ * Config resolution order (first match wins):
+ *   1. ORPHEUS_PROFILE_YAML env var — full config as a YAML string.
+ *      Set this in Railway (or any host) to inject the personal profile
+ *      without committing it to git.
+ *   2. archimedes.config.yaml  ← personal profile, gitignored
+ *   3. archimedes.config.yml
+ *   4. orpheus.config.yaml
+ *   5. orpheus.config.yml
+ *   6. config.yaml
  *
- * NOTE: The archimedes.config.yaml uses snake_case for the fields added in
- * the v2 schema update (target_titles, avoid_phrases, positioning_guidance,
- * etc.). Zod strips unknown keys, so those values will be absent from the
- * parsed config until the YAML is updated to camelCase or a transform is
- * added here. The core fields (name, skills, experience, preferences,
- * agents, content, storage) are already camelCase and load correctly.
+ * snake_case → camelCase normalisation is applied in all paths so older
+ * YAML files (target_titles, avoid_phrases, etc.) keep working.
  */
 
 import { readFileSync, existsSync } from "fs";
@@ -83,15 +82,21 @@ function normalizeProfileKeys(raw: Record<string, unknown>): Record<string, unkn
 }
 
 export function loadConfig(): Config {
+  // ── 1. Env-var injection (Railway / any host without filesystem config) ──
+  if (process.env.ORPHEUS_PROFILE_YAML) {
+    const parsed = normalizeProfileKeys(parseYaml(process.env.ORPHEUS_PROFILE_YAML));
+    return ConfigSchema.parse(parsed);
+  }
+
+  // ── 2. File-based loading ─────────────────────────────────────────────────
   for (const path of CONFIG_PATHS) {
     if (existsSync(path)) {
-      const raw = readFileSync(path, "utf-8");
-      const parsed = normalizeProfileKeys(parseYaml(raw));
+      const parsed = normalizeProfileKeys(parseYaml(readFileSync(path, "utf-8")));
       return ConfigSchema.parse(parsed);
     }
   }
 
-  // Bare-minimum defaults so the server can start without a config file.
+  // ── 3. Bare-minimum defaults (no config at all) ───────────────────────────
   return ConfigSchema.parse({
     profile: {
       name: process.env.USER ?? "User",
