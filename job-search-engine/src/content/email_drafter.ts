@@ -149,6 +149,17 @@ export class EmailDrafter {
     return `${base}\n\n${guidance[type]}`;
   }
 
+  private buildVoiceContext(profile: UserProfile): string {
+    const lines: string[] = [];
+    if (profile.voice?.avoidPhrases?.length) {
+      lines.push(`NEVER USE: ${profile.voice.avoidPhrases.join(", ")}`);
+    }
+    if (profile.voice?.signaturePhrases?.length) {
+      lines.push(`PREFERRED PHRASES: ${profile.voice.signaturePhrases.join(", ")}`);
+    }
+    return lines.length ? `\n\n${lines.join("\n")}` : "";
+  }
+
   private buildPrompt(
     profile: UserProfile,
     job: JobListing,
@@ -177,6 +188,7 @@ TARGET: ${job.title} at ${job.company}`;
     }
 
     prompt += `\n\nKEY STRENGTHS: ${profile.skills.slice(0, 8).join(", ")}`;
+    prompt += this.buildVoiceContext(profile);
 
     return prompt;
   }

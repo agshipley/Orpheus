@@ -276,15 +276,31 @@ Return JSON array:
 
   // ─── Variant Generation ───────────────────────────────────────
 
+  private buildVoiceContext(profile: UserProfile): string {
+    const lines: string[] = [];
+    if (profile.positioningGuidance) {
+      lines.push(`POSITIONING GUIDANCE:\n${profile.positioningGuidance.trim()}`);
+    }
+    if (profile.voice?.avoidPhrases?.length) {
+      lines.push(`NEVER USE THESE PHRASES: ${profile.voice.avoidPhrases.join(", ")}`);
+    }
+    if (profile.voice?.signaturePhrases?.length) {
+      lines.push(`PREFERRED PHRASES (use naturally when they fit): ${profile.voice.signaturePhrases.join(", ")}`);
+    }
+    return lines.length ? `\n\n${lines.join("\n\n")}` : "";
+  }
+
   private async generateVariant(
     profile: UserProfile,
     job: JobListing,
     strategy: TailoringStrategy
   ): Promise<{ content: string; confidence: number; tokensUsed: number }> {
+    const voiceContext = this.buildVoiceContext(profile);
+
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 4000,
-      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.`,
+      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.${voiceContext}`,
       messages: [
         {
           role: "user",
@@ -308,7 +324,7 @@ ${profile.education.map((e) => `- ${e.degree} in ${e.field ?? "N/A"}, ${e.instit
 
 Target Job: ${job.title} at ${job.company}
 Job Description: ${job.description.slice(0, 2000)}
-
+${profile.projects?.length ? `\nProjects:\n${profile.projects.map((p) => `- ${p.name}: ${p.description}${p.role ? ` (${p.role})` : ""}`).join("\n")}` : ""}
 Output the resume in markdown, then on a new line output: CONFIDENCE: <0-1 score>`,
         },
       ],

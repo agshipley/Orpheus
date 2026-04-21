@@ -31,6 +31,7 @@ import { applyHandler } from "./routes/apply.js";
 import { listJobsHandler, getJobHandler } from "./routes/jobs.js";
 import { tracesHandler, metricsHandler, decisionsHandler } from "./routes/observability.js";
 import { profileHandler } from "./routes/profile.js";
+import { createApplicationHandler } from "./routes/applications.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -67,6 +68,7 @@ app.use((req, _res, next) => {
 
 app.post("/api/search", searchHandler);
 app.post("/api/apply", applyHandler);
+app.post("/api/applications", createApplicationHandler);
 
 app.get("/api/jobs", listJobsHandler);
 app.get("/api/jobs/:id", getJobHandler);

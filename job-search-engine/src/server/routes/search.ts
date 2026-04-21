@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { Conductor } from "../../conductor/conductor.js";
+import { JobStore } from "../../storage/job_store.js";
 import { loadConfig } from "../config.js";
 
 /**
@@ -24,6 +25,15 @@ export async function searchHandler(req: Request, res: Response): Promise<void> 
 
   try {
     const result = await conductor.search(query.trim());
+
+    // Persist ranked jobs so /api/apply can look them up by ID.
+    const store = new JobStore(config.storage.dbPath);
+    try {
+      store.bulkUpsert(result.jobs);
+    } finally {
+      store.close();
+    }
+
     res.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

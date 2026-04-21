@@ -82,6 +82,17 @@ export const getDecisions = (opts: {
 }> =>
   req(`/decisions${qs(opts as Record<string, string | number | boolean | undefined>)}`);
 
+// ─── Applications ─────────────────────────────────────────────────
+
+export const saveGeneratedContent = (params: {
+  jobId: string;
+  type: string;
+  strategy: string;
+  content: string;
+  confidence: number;
+}): Promise<{ id: string; jobId: string }> =>
+  req("/applications", json(params));
+
 // ─── Profile ──────────────────────────────────────────────────────
 
 export const getProfile = (): Promise<{

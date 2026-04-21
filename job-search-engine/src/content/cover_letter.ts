@@ -180,6 +180,23 @@ export class CoverLetterGenerator {
     }
   }
 
+  private buildVoiceContext(profile: UserProfile): string {
+    const lines: string[] = [];
+    if (profile.positioningGuidance) {
+      lines.push(`POSITIONING GUIDANCE:\n${profile.positioningGuidance.trim()}`);
+    }
+    if (profile.voice?.avoidPhrases?.length) {
+      lines.push(`NEVER USE THESE PHRASES: ${profile.voice.avoidPhrases.join(", ")}`);
+    }
+    if (profile.voice?.signaturePhrases?.length) {
+      lines.push(`PREFERRED PHRASES (use naturally when they fit): ${profile.voice.signaturePhrases.join(", ")}`);
+    }
+    if (profile.voice?.tone) {
+      lines.push(`VOICE/TONE: ${profile.voice.tone.trim()}`);
+    }
+    return lines.length ? `\n\n${lines.join("\n\n")}` : "";
+  }
+
   private async generateVariant(
     profile: UserProfile,
     job: JobListing,
@@ -187,6 +204,8 @@ export class CoverLetterGenerator {
     tone: string,
     maxWords: number
   ): Promise<{ content: string; confidence: number; tokensUsed: number }> {
+    const voiceContext = this.buildVoiceContext(profile);
+
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 3000,
@@ -200,7 +219,7 @@ Strategy to follow:
 - Closing: ${strategy.closingStyle}
 
 Tone: ${tone}
-Target length: ~${maxWords} words
+Target length: ~${maxWords} words${voiceContext}
 
 After the letter, on a new line write: CONFIDENCE: <0.0-1.0>`,
       messages: [

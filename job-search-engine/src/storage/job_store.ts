@@ -71,11 +71,22 @@ export class JobStore {
         created_at TEXT DEFAULT (datetime('now'))
       );
 
+      CREATE TABLE IF NOT EXISTS generated_content (
+        id TEXT PRIMARY KEY,
+        job_id TEXT NOT NULL,
+        type TEXT NOT NULL,
+        strategy TEXT NOT NULL,
+        content TEXT NOT NULL,
+        confidence REAL,
+        created_at TEXT DEFAULT (datetime('now'))
+      );
+
       CREATE INDEX IF NOT EXISTS idx_jobs_company ON jobs(company);
       CREATE INDEX IF NOT EXISTS idx_jobs_source ON jobs(source);
       CREATE INDEX IF NOT EXISTS idx_jobs_dedup ON jobs(dedup_key);
       CREATE INDEX IF NOT EXISTS idx_jobs_score ON jobs(match_score DESC);
       CREATE INDEX IF NOT EXISTS idx_applications_status ON applications(status);
+      CREATE INDEX IF NOT EXISTS idx_generated_content_job ON generated_content(job_id);
 
       CREATE VIRTUAL TABLE IF NOT EXISTS jobs_fts USING fts5(
         title, company, description, tags,
@@ -312,6 +323,56 @@ export class JobStore {
       byStatus,
       avgMatchScore: avgScore ?? 0,
     };
+  }
+
+  /**
+   * Persist a generated content variant for a job.
+   */
+  storeGeneratedContent(params: {
+    jobId: string;
+    type: string;
+    strategy: string;
+    content: string;
+    confidence: number;
+  }): string {
+    const id = `gen_${nanoid(10)}`;
+    this.db
+      .prepare(
+        `INSERT INTO generated_content (id, job_id, type, strategy, content, confidence)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      )
+      .run(id, params.jobId, params.type, params.strategy, params.content, params.confidence);
+    return id;
+  }
+
+  /**
+   * Retrieve all generated content for a job, newest first.
+   */
+  getGeneratedContent(jobId: string): Array<{
+    id: string;
+    jobId: string;
+    type: string;
+    strategy: string;
+    content: string;
+    confidence: number;
+    createdAt: string;
+  }> {
+    return (
+      this.db
+        .prepare(`SELECT * FROM generated_content WHERE job_id = ? ORDER BY created_at DESC`)
+        .all(jobId) as Array<{
+          id: string; job_id: string; type: string; strategy: string;
+          content: string; confidence: number; created_at: string;
+        }>
+    ).map((r) => ({
+      id: r.id,
+      jobId: r.job_id,
+      type: r.type,
+      strategy: r.strategy,
+      content: r.content,
+      confidence: r.confidence,
+      createdAt: r.created_at,
+    }));
   }
 
   /**
