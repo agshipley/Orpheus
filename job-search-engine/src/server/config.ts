@@ -2,14 +2,13 @@
  * Shared config + .env loader for the Express server.
  *
  * Config resolution order (first match wins):
- *   1. ORPHEUS_PROFILE_YAML env var — full config as a YAML string.
- *      Set this in Railway (or any host) to inject the personal profile
- *      without committing it to git.
- *   2. archimedes.config.yaml  ← personal profile, gitignored
- *   3. archimedes.config.yml
- *   4. orpheus.config.yaml
- *   5. orpheus.config.yml
- *   6. config.yaml
+ *   1. archimedes.config.yaml  ← committed to repo; primary source of truth
+ *   2. archimedes.config.yml
+ *   3. orpheus.config.yaml
+ *   4. orpheus.config.yml
+ *   5. config.yaml
+ *   6. ORPHEUS_PROFILE_YAML env var — fallback for open-source deployments
+ *      where no config file is present in the repo.
  *
  * snake_case → camelCase normalisation is applied in all paths so older
  * YAML files (target_titles, avoid_phrases, etc.) keep working.
@@ -82,18 +81,18 @@ function normalizeProfileKeys(raw: Record<string, unknown>): Record<string, unkn
 }
 
 export function loadConfig(): Config {
-  // ── 1. Env-var injection (Railway / any host without filesystem config) ──
-  if (process.env.ORPHEUS_PROFILE_YAML) {
-    const parsed = normalizeProfileKeys(parseYaml(process.env.ORPHEUS_PROFILE_YAML));
-    return ConfigSchema.parse(parsed);
-  }
-
-  // ── 2. File-based loading ─────────────────────────────────────────────────
+  // ── 1. File-based loading (committed config is primary source of truth) ───
   for (const path of CONFIG_PATHS) {
     if (existsSync(path)) {
       const parsed = normalizeProfileKeys(parseYaml(readFileSync(path, "utf-8")));
       return ConfigSchema.parse(parsed);
     }
+  }
+
+  // ── 2. Env-var fallback (open-source / no config file in repo) ────────────
+  if (process.env.ORPHEUS_PROFILE_YAML) {
+    const parsed = normalizeProfileKeys(parseYaml(process.env.ORPHEUS_PROFILE_YAML));
+    return ConfigSchema.parse(parsed);
   }
 
   // ── 3. Bare-minimum defaults (no config at all) ───────────────────────────
