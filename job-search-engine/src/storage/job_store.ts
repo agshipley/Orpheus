@@ -9,6 +9,8 @@
  */
 
 import Database from "better-sqlite3";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 import { nanoid } from "nanoid";
 import type { JobListing } from "../types.js";
 
@@ -16,6 +18,7 @@ export class JobStore {
   private db: Database.Database;
 
   constructor(dbPath: string = "./data/orpheus.db") {
+    mkdirSync(dirname(dbPath), { recursive: true });
     this.db = new Database(dbPath);
     this.initialize();
   }

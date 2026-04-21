@@ -434,7 +434,7 @@ content:
   maxVariants: 3
 
 storage:
-  dbPath: "./data/archimedes.db"
+  dbPath: "${DATABASE_PATH:-./data/archimedes.db}"
 
 org_adjacency:
   tier_1_frontier_ai:

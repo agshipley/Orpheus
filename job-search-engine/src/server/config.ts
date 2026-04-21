@@ -80,11 +80,25 @@ function normalizeProfileKeys(raw: Record<string, unknown>): Record<string, unkn
   return { ...raw, profile };
 }
 
+// Substitute ${VAR:-default} and ${VAR} patterns with process.env values.
+function substituteEnvVars(yaml: string): string {
+  return yaml.replace(/\$\{([^}]+)\}/g, (_, expr) => {
+    const colonDash = expr.indexOf(":-");
+    if (colonDash !== -1) {
+      const key = expr.slice(0, colonDash);
+      const fallback = expr.slice(colonDash + 2);
+      return process.env[key] ?? fallback;
+    }
+    return process.env[expr] ?? "";
+  });
+}
+
 export function loadConfig(): Config {
   // ── 1. File-based loading (committed config is primary source of truth) ───
   for (const path of CONFIG_PATHS) {
     if (existsSync(path)) {
-      const parsed = normalizeProfileKeys(parseYaml(readFileSync(path, "utf-8")));
+      const raw = substituteEnvVars(readFileSync(path, "utf-8"));
+      const parsed = normalizeProfileKeys(parseYaml(raw));
       return ConfigSchema.parse(parsed);
     }
   }
