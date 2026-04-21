@@ -29,6 +29,21 @@ function ScoreBadge({ score }: { score?: number }) {
   );
 }
 
+function IdentityBadge({ identity }: { identity?: "operator" | "legal" | "research" }) {
+  if (!identity) return null;
+  const map: Record<string, { label: string; color: string }> = {
+    operator: { label: "OP", color: "text-blue-400 border-blue-800" },
+    legal:    { label: "LEG", color: "text-amber-400 border-amber-800" },
+    research: { label: "RES", color: "text-emerald-400 border-emerald-800" },
+  };
+  const { label, color } = map[identity] ?? { label: "—", color: "text-zinc-500 border-zinc-700" };
+  return (
+    <span className={`tag font-mono text-[10px] tracking-wider border ${color}`}>
+      {label}
+    </span>
+  );
+}
+
 function SourceBadge({ source }: { source: string }) {
   const map: Record<string, string> = {
     ycombinator: "YC",
@@ -199,6 +214,7 @@ export default function SearchPage() {
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase hidden md:table-cell">Location</th>
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase hidden lg:table-cell">Salary</th>
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase">Score</th>
+                  <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widest uppercase hidden sm:table-cell">Id</th>
                   <th className="px-4 py-3 text-left text-[11px] font-medium text-zinc-600 tracking-widests uppercase hidden sm:table-cell">Src</th>
                 </tr>
               </thead>
@@ -224,6 +240,7 @@ export default function SearchPage() {
                     <td className="px-4 py-4 text-zinc-500 hidden md:table-cell">{job.location || "—"}</td>
                     <td className="px-4 py-4 text-zinc-500 font-mono text-xs hidden lg:table-cell">{fmtSalary(job)}</td>
                     <td className="px-4 py-4"><ScoreBadge score={job.matchScore} /></td>
+                    <td className="px-4 py-4 hidden sm:table-cell"><IdentityBadge identity={job.matchedIdentity} /></td>
                     <td className="px-4 py-4 hidden sm:table-cell"><SourceBadge source={job.source} /></td>
                   </tr>
                 ))}

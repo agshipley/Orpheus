@@ -19,6 +19,7 @@ import type {
   JobListing,
   ContentResult,
   ContentVariant,
+  IdentityKey,
 } from "../types.js";
 
 interface TailoringStrategy {
@@ -41,13 +42,25 @@ export class ResumeTailor {
     this.model = model;
   }
 
+  private buildIdentityContext(profile: UserProfile, identity?: IdentityKey): string {
+    if (!identity || !profile.identities) return "";
+    const cfg = profile.identities[identity];
+    if (!cfg) return "";
+    const lines: string[] = [];
+    if (cfg.positioning_guidance) lines.push(`IDENTITY POSITIONING:\n${cfg.positioning_guidance.trim()}`);
+    if (cfg.resume_emphasis)      lines.push(`RESUME EMPHASIS:\n${cfg.resume_emphasis.trim()}`);
+    if (cfg.key_credentials?.length) lines.push(`KEY CREDENTIALS TO HIGHLIGHT: ${cfg.key_credentials.join(", ")}`);
+    return lines.length ? `\n\n${lines.join("\n\n")}` : "";
+  }
+
   /**
    * Generate tailored resume variants for a specific job.
    */
   async tailor(
     profile: UserProfile,
     job: JobListing,
-    variantCount: number = 2
+    variantCount: number = 2,
+    identity?: IdentityKey
   ): Promise<ContentResult> {
     const rootSpan = this.tracer.startTrace("content.resume.tailor");
     rootSpan.setAttributes({
@@ -122,7 +135,8 @@ export class ResumeTailor {
             const result = await this.generateVariant(
               profile,
               job,
-              strategy
+              strategy,
+              identity
             );
             span.setAttribute("content_length", result.content.length);
             totalTokens += result.tokensUsed;
@@ -293,14 +307,16 @@ Return JSON array:
   private async generateVariant(
     profile: UserProfile,
     job: JobListing,
-    strategy: TailoringStrategy
+    strategy: TailoringStrategy,
+    identity?: IdentityKey
   ): Promise<{ content: string; confidence: number; tokensUsed: number }> {
     const voiceContext = this.buildVoiceContext(profile);
+    const identityContext = this.buildIdentityContext(profile, identity);
 
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 4000,
-      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.${voiceContext}`,
+      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.${voiceContext}${identityContext}`,
       messages: [
         {
           role: "user",

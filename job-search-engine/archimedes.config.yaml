@@ -242,6 +242,149 @@ profile:
     The Rhodes, Fulbright, Yale Law, and Phi Beta Kappa credentials
     signal intellectual horsepower without needing to belabor the point.
 
+  identities:
+
+    operator:
+      target_titles:
+        - "Chief of Staff"
+        - "Chief of Staff to CEO"
+        - "Chief of Staff to Managing Partner"
+        - "Director of Operations"
+        - "Head of Operations"
+        - "Business Operations Lead"
+        - "Strategic Operations Lead"
+        - "Head of Strategic Initiatives"
+        - "Partnerships and Strategic Initiatives"
+        - "Director of Special Projects"
+        - "Founder's Associate"
+        - "Business Operations"
+        - "Strategy and Operations"
+      positioning_guidance: >
+        Frame as a senior operator who has been the executive counterpart to
+        founders at seed and Series-A startups. The EeroQ Chief of Staff role
+        is the clearest proof point — promoted from outside counsel to executive
+        CoS, ran $10M+ in financing, IP licensing, office buildout. Trace Machina
+        shows the same pattern: sole director, 10x ARR, 7x legal cost reduction,
+        SOC II certification. Legal background is a force multiplier on operating
+        credibility, not a separate identity for these roles.
+      resume_emphasis: >
+        Lead with EeroQ Chief of Staff (promoted from Special Counsel, clearest
+        single proof point). Then Trace Machina Director of Ops with quantified
+        wins. Then AGS Law as proof of building and running your own thing.
+        Education: Yale Law plus Rhodes plus Oregon in the header — don't belabor.
+        Do not lead with publications; mention briefly only if the role
+        description signals research interest.
+      cover_letter_emphasis: >
+        Open with a specific moment from EeroQ or Trace Machina that shows
+        high-judgment operation under ambiguity. Connect to what this company
+        needs right now. Avoid lawyer framing — that's a credential, not an
+        identity.
+      key_credentials:
+        - "Chief of Staff, EeroQ Corporation"
+        - "Director of Operations, Trace Machina"
+        - "Co-founding Partner, AGS Law"
+        - "JD, Yale Law School"
+        - "Rhodes Scholar, Oxford"
+      score_weight: 1.0
+
+    legal:
+      target_titles:
+        - "General Counsel"
+        - "Head of Legal"
+        - "VP Legal"
+        - "Head of Business Affairs"
+        - "Business Affairs"
+        - "Corporate Development"
+        - "Head of Corporate Development"
+        - "VP Corporate Development"
+        - "Strategic Partnerships"
+        - "Head of Strategic Partnerships"
+        - "Special Counsel"
+        - "Associate General Counsel"
+      positioning_guidance: >
+        Frame as a corporate attorney with unusual operating range. Gunderson
+        Dettmer (top-ranked global VC law firm) for venture financing fluency.
+        AGS Law co-founder for 8+ years of ongoing corporate practice: 100+
+        startups, $250M+ strategic transactions, fund formation, IP licensing
+        with Princeton and Michigan State (EeroQ), SBIR grants. The EeroQ
+        promotion to Chief of Staff is evidence that you can be deployed as
+        more than a legal resource — an asset for GC roles at companies where
+        legal leadership needs to sit inside the business, not adjacent to it.
+      resume_emphasis: >
+        Lead with AGS Law and the scale of practice ($250M+ transactions,
+        100+ clients). Then EeroQ Special Counsel and promotion to CoS —
+        frame the promotion as proof of strategic judgment, not as moving
+        away from law. Then Gunderson. Yale Law prominent. Don't bury
+        the legal work; this role is about it.
+      cover_letter_emphasis: >
+        Open with specific transactional experience relevant to this company's
+        stage or sector. Reference deal types (SAFEs, warrants, licensing)
+        and the scale. Position yourself as a commercially literate lawyer
+        who operates inside the business, not a pure legal IC.
+      key_credentials:
+        - "Co-founding Partner, AGS Law PLLC"
+        - "Special Counsel → Chief of Staff, EeroQ"
+        - "Corporate Associate, Gunderson Dettmer"
+        - "JD, Yale Law School"
+      score_weight: 1.0
+
+    research:
+      target_titles:
+        - "Head of Research Operations"
+        - "Director of Research Programs"
+        - "Research Operations"
+        - "Program Officer"
+        - "Senior Program Officer"
+        - "Research Manager"
+        - "Program Manager, Research"
+        - "Policy Researcher"
+        - "Policy Fellow"
+        - "Senior Fellow"
+        - "Research Fellow"
+        - "Grants Manager"
+        - "Head of Grants"
+        - "Chief of Staff to Chief Scientist"
+        - "Chief of Staff to Research Director"
+        - "Head of External Affairs"
+        - "Director of AI Policy"
+        - "Head of AI Policy"
+      positioning_guidance: >
+        Frame as a trained empirical social scientist who chose the operating
+        path over the academic one and now works at the intersection of
+        research-driven organizations, founders, and consequential decisions.
+        Three peer-reviewed publications across three domains: social identity
+        and prosocial behavior (Psychological Reports, 2008, sole author);
+        political engagement and televised debates (SSRN/Reuters Institute
+        volume, 2010, co-author with William Dutton at Oxford Internet
+        Institute); moral foundations and motivated social cognition (PLOS
+        ONE, 2020, co-author with John T. Jost at NYU). Rhodes + Fulbright
+        + doctoral work in experimental psychology at Oxford. The Trace
+        Machina ARIA Safeguarded AI grant work is direct evidence of research-
+        credentialed operating at the frontier of AI safety infrastructure.
+      resume_emphasis: >
+        Lead with publications in the education/credentials section — these
+        are the signal for research-adjacent hiring managers. Then the
+        Trace Machina ARIA work (frames AI safety grant writing as actual
+        research-adjacent operating). Then EeroQ and AGS Law as proof of
+        execution, not just theorizing. Rhodes, Fulbright, Yale Law all
+        prominent. Be explicit that you've worked at Oxford Internet
+        Institute and the Jost lab.
+      cover_letter_emphasis: >
+        Open with a specific intellectual touchpoint — a question the
+        organization is working on that connects to your research or
+        AI-infrastructure work. Cite the publications if the role description
+        signals that's the right register. Frame the legal and operating
+        experience as evidence you can ship in the world, not just write
+        about it.
+      key_credentials:
+        - "Co-author with John T. Jost (NYU), PLOS ONE 2020"
+        - "Co-author with William H. Dutton (Oxford Internet Institute), 2010"
+        - "Sole author, Psychological Reports 2008"
+        - "Rhodes Scholar, DPhil Experimental Psychology, Oxford"
+        - "Fulbright Scholar, University of Wellington"
+        - "Director of Operations, Trace Machina (AI safety infrastructure)"
+      score_weight: 1.0
+
   projects:
     - name: "Archimedes"
       description: "AI-powered job search engine built on MCP with parallel agents and observability"
@@ -292,3 +435,49 @@ content:
 
 storage:
   dbPath: "./data/archimedes.db"
+
+org_adjacency:
+  tier_1_frontier_ai:
+    boost: 60
+    orgs:
+      - Anthropic
+      - OpenAI
+      - Google DeepMind
+      - Meta AI Research (FAIR)
+      - METR
+      - Redwood Research
+      - FAR Labs
+      - ARC (Alignment Research Center)
+      - Apollo Research
+      - AI Objectives Institute
+      - Conjecture
+  tier_2_ai_policy:
+    boost: 50
+    orgs:
+      - Open Philanthropy
+      - RAND
+      - CSET
+      - GovAI
+      - AI Policy Institute
+      - CAIDP
+      - Centre for the Governance of AI
+  tier_3_tech_policy_civic:
+    boost: 40
+    orgs:
+      - Oxford Internet Institute
+      - Stanford HAI
+      - Stanford Cyber Policy Center
+      - Berkman Klein Center
+      - Data & Society
+      - AI Now Institute
+      - Knight First Amendment Institute
+      - Reuters Institute
+      - Shorenstein Center
+      - Pew Research Center
+      - Mozilla Foundation
+      - Omidyar Network
+      - Knight Foundation
+      - Ford Foundation
+      - Code for America
+      - Protect Democracy
+      - The GovLab

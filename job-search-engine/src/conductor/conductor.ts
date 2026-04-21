@@ -17,6 +17,7 @@ import pLimit from "p-limit";
 import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js";
 import { createAgentPool } from "../agents/index.js";
 import type { BaseAgent } from "../agents/base_agent.js";
+import { scoreJob } from "./ranker.js";
 import type {
   Config,
   SearchQuery,
@@ -445,88 +446,23 @@ Schema:
 
   private heuristicRank(jobs: JobListing[], query: SearchQuery): JobListing[] {
     const profile = this.config.profile;
-    const scored = jobs.map((job) => ({
-      job,
-      score: this.heuristicScore(job, query, profile),
-    }));
-    scored.sort((a, b) => b.score - a.score);
-    const maxScore = scored[0]?.score ?? 1;
-    return scored.map(({ job, score }) => ({
+    const orgAdjacency = this.config.org_adjacency;
+
+    const scored = jobs.map((job) => {
+      const jobScore = scoreJob(job, query, profile, orgAdjacency);
+      return { job, jobScore };
+    });
+
+    scored.sort((a, b) => b.jobScore.score - a.jobScore.score);
+
+    return scored.map(({ job, jobScore }) => ({
       ...job,
-      matchScore: maxScore > 0 ? Math.min(1, score / maxScore) : 0,
+      matchScore: jobScore.score,
+      matchedIdentity: jobScore.matchedIdentity,
+      identityReasons: Object.fromEntries(
+        Object.entries(jobScore.identityScores).map(([k, v]) => [k, v.reasons])
+      ),
     }));
-  }
-
-  private heuristicScore(
-    job: JobListing,
-    query: SearchQuery,
-    profile: UserProfile
-  ): number {
-    let score = 0;
-
-    // ── Source quality bonus: WaaS = primary source (+10) ─────────
-    // Work at a Startup is the highest-signal source for this profile (YC
-    // companies, AI/startup focus). +10 ensures equivalent keyword matches
-    // from WaaS rank above Jobicy and HN results. Not a magic number:
-    // it's set to beat the remote-preference bonus (+10) that both sources
-    // could also earn, so WaaS wins any tie on remote roles.
-    if (job.source === "waas") score += 10;
-
-    // ── Dominant signal: profile target title match (+60) ──────────
-    // Any phrase from targetTitles found in the job title → strong boost.
-    // This is the highest-weighted single signal so profile-aligned roles
-    // always surface above keyword-matched-but-wrong-level results.
-    if ((profile.targetTitles ?? []).length > 0) {
-      const jobTitleLower = job.title.toLowerCase();
-      const matches = (profile.targetTitles ?? []).some((t) =>
-        jobTitleLower.includes(t.toLowerCase())
-      );
-      if (matches) score += 60;
-    }
-
-    // ── Skill match (up to 40) ─────────────────────────────────────
-    if (query.skills.length > 0) {
-      const descLower = job.description.toLowerCase();
-      const matchCount = query.skills.filter((s) =>
-        descLower.includes(s.toLowerCase())
-      ).length;
-      score += (matchCount / query.skills.length) * 40;
-    }
-
-    // ── Query title match (up to 30) ──────────────────────────────
-    if (query.title) {
-      const titleWords = query.title.toLowerCase().split(/\s+/);
-      const jobTitleLower = job.title.toLowerCase();
-      const titleMatch = titleWords.filter((w) =>
-        jobTitleLower.includes(w)
-      ).length;
-      score += (titleMatch / titleWords.length) * 30;
-    }
-
-    // ── Salary match ───────────────────────────────────────────────
-    if (query.salaryMin && job.salary?.min) {
-      if (job.salary.min >= query.salaryMin) {
-        score += 15;
-      } else if (job.salary.min >= query.salaryMin * 0.9) {
-        score += 8;
-      }
-    }
-
-    // ── Remote preference ─────────────────────────────────────────
-    if (query.remote && job.remote) {
-      score += 10;
-    }
-
-    // ── Recency bonus ──────────────────────────────────────────────
-    if (job.postedAt) {
-      const daysAgo =
-        (Date.now() - new Date(job.postedAt).getTime()) / (1000 * 60 * 60 * 24);
-      if (daysAgo < 3) score += 5;
-      else if (daysAgo < 7) score += 3;
-      else if (daysAgo < 14) score += 1;
-    }
-
-    return score;
   }
 
   private estimateCost(tokens: number): number {

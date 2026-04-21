@@ -24,6 +24,8 @@ export interface JobListing {
   tags: string[];
   matchScore?: number;
   matchReasoning?: string;
+  matchedIdentity?: "operator" | "legal" | "research";
+  identityReasons?: Record<string, string[]>;
 }
 
 export interface SearchStats {

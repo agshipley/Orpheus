@@ -4,6 +4,7 @@ import * as api from "../api/client";
 import type { JobListing, ApplyResult, ContentVariant } from "../types";
 
 type GenType = "resume" | "cover_letter" | "email";
+type IdentityKey = "operator" | "legal" | "research";
 
 const GEN_BUTTONS: { type: GenType; label: string; loadingMsg: string }[] = [
   { type: "resume",       label: "Tailor Resume",      loadingMsg: "Tailoring resume…"         },
@@ -122,6 +123,84 @@ function VariantCard({
   );
 }
 
+// ─── Match Analysis ───────────────────────────────────────────────
+
+const IDENTITY_META: Record<IdentityKey, { label: string; color: string; badge: string }> = {
+  operator: { label: "Operator",  color: "text-blue-400",    badge: "OP"  },
+  legal:    { label: "Legal",     color: "text-amber-400",   badge: "LEG" },
+  research: { label: "Research",  color: "text-emerald-400", badge: "RES" },
+};
+
+function MatchAnalysis({ job }: { job: JobListing }) {
+  const [expanded, setExpanded] = useState<IdentityKey | null>(null);
+  if (!job.matchedIdentity || !job.identityReasons) return null;
+
+  const winning = job.matchedIdentity;
+  const others = (["operator", "legal", "research"] as IdentityKey[]).filter((k) => k !== winning);
+
+  return (
+    <section>
+      <h3 className="text-[10px] font-semibold text-zinc-600 tracking-widests uppercase mb-2">Match Analysis</h3>
+      <div className="space-y-2">
+        {/* Winning identity */}
+        <div className="rounded-lg bg-elevated border border-border-subtle px-3 py-2.5">
+          <div className="flex items-center gap-2 mb-1.5">
+            <span className={`text-[10px] font-semibold font-mono ${IDENTITY_META[winning].color}`}>
+              {IDENTITY_META[winning].badge}
+            </span>
+            <span className={`text-xs font-medium ${IDENTITY_META[winning].color}`}>
+              {IDENTITY_META[winning].label}
+            </span>
+            <span className="text-[10px] text-zinc-600 ml-auto">winning identity</span>
+          </div>
+          <ul className="space-y-0.5">
+            {(job.identityReasons[winning] ?? []).map((r, i) => (
+              <li key={i} className="text-[11px] text-zinc-400 flex gap-1.5">
+                <span className="text-zinc-600 shrink-0">·</span>{r}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Other identities — collapsed by default */}
+        {others.map((key) => {
+          const reasons = job.identityReasons?.[key] ?? [];
+          if (reasons.length === 0) return null;
+          const isOpen = expanded === key;
+          return (
+            <div key={key} className="rounded-lg border border-border-subtle overflow-hidden">
+              <button
+                className="w-full flex items-center gap-2 px-3 py-2 bg-elevated hover:bg-border-subtle transition-colors text-left"
+                onClick={() => setExpanded(isOpen ? null : key)}
+              >
+                <span className={`text-[10px] font-semibold font-mono ${IDENTITY_META[key].color}`}>
+                  {IDENTITY_META[key].badge}
+                </span>
+                <span className="text-xs text-zinc-500 flex-1">{IDENTITY_META[key].label}</span>
+                <svg className={`w-3.5 h-3.5 text-zinc-600 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M4 6l4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {isOpen && (
+                <div className="px-3 py-2.5 bg-surface">
+                  <ul className="space-y-0.5">
+                    {reasons.map((r, i) => (
+                      <li key={i} className="text-[11px] text-zinc-400 flex gap-1.5">
+                        <span className="text-zinc-600 shrink-0">·</span>{r}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 // ─── Salary helper ────────────────────────────────────────────────
 
 function fmtSalary(job: JobListing): string {
@@ -154,13 +233,16 @@ export default function JobDetailPanel({
   const [generating, setGenerating] = useState<GenType | null>(null);
   const [results, setResults] = useState<Partial<ApplyResult>>({});
   const [errors, setErrors] = useState<Partial<Record<GenType, string>>>({});
+  const [selectedIdentity, setSelectedIdentity] = useState<IdentityKey | undefined>(
+    job.matchedIdentity as IdentityKey | undefined
+  );
 
   const generate = async (type: GenType) => {
     if (generating) return;
     setGenerating(type);
     setErrors((e) => ({ ...e, [type]: undefined }));
     try {
-      const res = await api.apply(job.id, [type]);
+      const res = await api.apply(job.id, [type], { identity: selectedIdentity });
       setResults((r) => ({ ...r, ...res }));
 
       // Persist each variant to the backend
@@ -224,6 +306,18 @@ export default function JobDetailPanel({
 
         {/* Action buttons */}
         <div className="flex items-center gap-2 mt-4 flex-wrap">
+          {job.matchedIdentity && (
+            <select
+              value={selectedIdentity ?? ""}
+              onChange={(e) => setSelectedIdentity(e.target.value as IdentityKey || undefined)}
+              className="bg-elevated border border-border-default text-zinc-400 text-xs rounded-md px-2 h-7 focus:outline-none focus:border-accent/50"
+              title="Generate as identity"
+            >
+              <option value="operator">Generate as: Operator</option>
+              <option value="legal">Generate as: Legal</option>
+              <option value="research">Generate as: Research</option>
+            </select>
+          )}
           {GEN_BUTTONS.map(({ type, label, loadingMsg }) => (
             <button
               key={type}
@@ -261,6 +355,9 @@ export default function JobDetailPanel({
 
       {/* Scrollable body */}
       <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5">
+        {/* Match Analysis */}
+        <MatchAnalysis job={job} />
+
         {/* Match reasoning */}
         {job.matchReasoning && (
           <section>

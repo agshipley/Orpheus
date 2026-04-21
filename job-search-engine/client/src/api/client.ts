@@ -59,7 +59,7 @@ export const getJob = (id: string): Promise<JobListing> =>
 export const apply = (
   jobId: string,
   types: ("resume" | "cover_letter" | "email")[],
-  opts: { tone?: string; variants?: number } = {}
+  opts: { tone?: string; variants?: number; identity?: string } = {}
 ): Promise<ApplyResult> =>
   req("/apply", json({ jobId, types, ...opts }));
 

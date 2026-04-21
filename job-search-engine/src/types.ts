@@ -33,6 +33,9 @@ export const JobListingSchema = z.object({
   tags: z.array(z.string()).default([]),
   matchScore: z.number().min(0).max(1).optional(),
   matchReasoning: z.string().optional(),
+  // Multi-identity ranking fields (set by Conductor, not agents)
+  matchedIdentity: z.enum(["operator", "legal", "research"]).optional(),
+  identityReasons: z.record(z.array(z.string())).optional(),
 });
 
 export type JobListing = z.infer<typeof JobListingSchema>;
@@ -54,6 +57,20 @@ export const SearchQuerySchema = z.object({
 });
 
 export type SearchQuery = z.infer<typeof SearchQuerySchema>;
+
+// ─── Identity Config Types ────────────────────────────────────────
+
+export const IdentityConfigSchema = z.object({
+  target_titles: z.array(z.string()).default([]),
+  positioning_guidance: z.string().default(""),
+  resume_emphasis: z.string().default(""),
+  cover_letter_emphasis: z.string().default(""),
+  key_credentials: z.array(z.string()).default([]),
+  score_weight: z.number().default(1.0),
+});
+
+export type IdentityConfig = z.infer<typeof IdentityConfigSchema>;
+export type IdentityKey = "operator" | "legal" | "research";
 
 // ─── User Profile Types ───────────────────────────────────────────
 
@@ -112,6 +129,11 @@ export const UserProfileSchema = z.object({
     description: z.string(),
     role: z.string().optional(),
   })).default([]),
+  identities: z.object({
+    operator: IdentityConfigSchema,
+    legal: IdentityConfigSchema,
+    research: IdentityConfigSchema,
+  }).optional(),
 });
 
 export type UserProfile = z.infer<typeof UserProfileSchema>;
@@ -270,6 +292,13 @@ export interface CostEntry {
   timestamp: string;
 }
 
+// ─── Org Adjacency Types ─────────────────────────────────────────
+
+export const OrgAdjacencyTierSchema = z.object({
+  boost: z.number(),
+  orgs: z.array(z.string()).default([]),
+});
+
 // ─── Configuration Types ─────────────────────────────────────────
 
 export const ConfigSchema = z.object({
@@ -297,6 +326,11 @@ export const ConfigSchema = z.object({
   storage: z.object({
     dbPath: z.string().default("./data/orpheus.db"),
   }),
+  org_adjacency: z.object({
+    tier_1_frontier_ai: OrgAdjacencyTierSchema,
+    tier_2_ai_policy: OrgAdjacencyTierSchema,
+    tier_3_tech_policy_civic: OrgAdjacencyTierSchema,
+  }).optional(),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

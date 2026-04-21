@@ -16,6 +16,7 @@ import type {
   JobListing,
   ContentResult,
   ContentVariant,
+  IdentityKey,
 } from "../types.js";
 
 type EmailType = "cold_outreach" | "follow_up" | "thank_you" | "networking";
@@ -44,7 +45,8 @@ export class EmailDrafter {
     profile: UserProfile,
     job: JobListing,
     context: EmailContext,
-    variants: number = 2
+    variants: number = 2,
+    identity?: IdentityKey
   ): Promise<ContentResult> {
     const rootSpan = this.tracer.startTrace("content.email.draft");
     rootSpan.setAttributes({
@@ -64,7 +66,7 @@ export class EmailDrafter {
         const response = await this.client.messages.create({
           model: this.model,
           max_tokens: 1500,
-          system: this.getSystemPrompt(context.type, tone),
+          system: this.getSystemPrompt(context.type, tone) + this.buildIdentityContext(profile, identity),
           messages: [
             {
               role: "user",
@@ -147,6 +149,16 @@ export class EmailDrafter {
     };
 
     return `${base}\n\n${guidance[type]}`;
+  }
+
+  private buildIdentityContext(profile: UserProfile, identity?: IdentityKey): string {
+    if (!identity || !profile.identities) return "";
+    const cfg = profile.identities[identity];
+    if (!cfg) return "";
+    const lines: string[] = [];
+    if (cfg.positioning_guidance)    lines.push(`IDENTITY POSITIONING:\n${cfg.positioning_guidance.trim()}`);
+    if (cfg.key_credentials?.length) lines.push(`KEY CREDENTIALS: ${cfg.key_credentials.join(", ")}`);
+    return lines.length ? `\n\n${lines.join("\n\n")}` : "";
   }
 
   private buildVoiceContext(profile: UserProfile): string {

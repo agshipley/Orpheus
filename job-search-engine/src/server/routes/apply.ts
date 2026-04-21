@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { ResumeTailor, CoverLetterGenerator, EmailDrafter } from "../../content/index.js";
 import { JobStore } from "../../storage/job_store.js";
 import { loadConfig } from "../config.js";
+import type { IdentityKey } from "../../types.js";
 
 type ContentType = "resume" | "cover_letter" | "email";
 
@@ -12,13 +13,19 @@ type ContentType = "resume" | "cover_letter" | "email";
  * Generates the requested application materials for a stored job.
  */
 export async function applyHandler(req: Request, res: Response): Promise<void> {
-  const { jobId, types, tone = "conversational", variants = 2 } =
+  const { jobId, types, tone = "conversational", variants = 2, identity } =
     req.body as {
       jobId?: unknown;
       types?: unknown;
       tone?: string;
       variants?: number;
+      identity?: string;
     };
+
+  const identityKey: IdentityKey | undefined =
+    identity === "operator" || identity === "legal" || identity === "research"
+      ? identity
+      : undefined;
 
   if (typeof jobId !== "string" || !jobId.trim()) {
     res.status(400).json({ error: "jobId must be a non-empty string" });
@@ -52,18 +59,26 @@ export async function applyHandler(req: Request, res: Response): Promise<void> {
     const numVariants = Math.min(5, Math.max(1, Number(variants)));
     const result: Record<string, unknown> = { jobId, job };
 
+    // Default identity to the job's matched identity if not explicitly overridden
+    const effectiveIdentity = identityKey ?? (
+      job.matchedIdentity === "operator" || job.matchedIdentity === "legal" || job.matchedIdentity === "research"
+        ? job.matchedIdentity as IdentityKey
+        : undefined
+    );
+
     for (const type of types as ContentType[]) {
       if (type === "resume") {
         const tailor = new ResumeTailor(model);
-        result.resume = await tailor.tailor(profile, job, numVariants);
+        result.resume = await tailor.tailor(profile, job, numVariants, effectiveIdentity);
       } else if (type === "cover_letter") {
         const generator = new CoverLetterGenerator(model);
         result.coverLetter = await generator.generate(profile, job, {
           tone: tone as "formal" | "conversational" | "enthusiastic" | "concise",
+          identity: effectiveIdentity,
         });
       } else if (type === "email") {
         const drafter = new EmailDrafter(model);
-        result.email = await drafter.draft(profile, job, { type: "cold_outreach" }, numVariants);
+        result.email = await drafter.draft(profile, job, { type: "cold_outreach" }, numVariants, effectiveIdentity);
       }
     }
 

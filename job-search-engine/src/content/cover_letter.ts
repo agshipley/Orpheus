@@ -18,6 +18,7 @@ import type {
   ContentResult,
   ContentVariant,
   ContentRequest,
+  IdentityKey,
 } from "../types.js";
 
 interface LetterStrategy {
@@ -78,6 +79,7 @@ export class CoverLetterGenerator {
       tone?: ContentRequest["tone"];
       strategies?: string[];
       maxLength?: number;
+      identity?: IdentityKey;
     }
   ): Promise<ContentResult> {
     const rootSpan = this.tracer.startTrace("content.cover_letter.generate");
@@ -109,7 +111,8 @@ export class CoverLetterGenerator {
               job,
               strategy,
               options?.tone ?? "conversational",
-              options?.maxLength ?? 400
+              options?.maxLength ?? 400,
+              options?.identity
             );
             span.setAttributes({
               "strategy": strategy.id,
@@ -180,6 +183,17 @@ export class CoverLetterGenerator {
     }
   }
 
+  private buildIdentityContext(profile: UserProfile, identity?: IdentityKey): string {
+    if (!identity || !profile.identities) return "";
+    const cfg = profile.identities[identity];
+    if (!cfg) return "";
+    const lines: string[] = [];
+    if (cfg.positioning_guidance)    lines.push(`IDENTITY POSITIONING:\n${cfg.positioning_guidance.trim()}`);
+    if (cfg.cover_letter_emphasis)   lines.push(`COVER LETTER EMPHASIS:\n${cfg.cover_letter_emphasis.trim()}`);
+    if (cfg.key_credentials?.length) lines.push(`KEY CREDENTIALS TO HIGHLIGHT: ${cfg.key_credentials.join(", ")}`);
+    return lines.length ? `\n\n${lines.join("\n\n")}` : "";
+  }
+
   private buildVoiceContext(profile: UserProfile): string {
     const lines: string[] = [];
     if (profile.positioningGuidance) {
@@ -202,9 +216,11 @@ export class CoverLetterGenerator {
     job: JobListing,
     strategy: LetterStrategy,
     tone: string,
-    maxWords: number
+    maxWords: number,
+    identity?: IdentityKey
   ): Promise<{ content: string; confidence: number; tokensUsed: number }> {
     const voiceContext = this.buildVoiceContext(profile);
+    const identityContext = this.buildIdentityContext(profile, identity);
 
     const response = await this.client.messages.create({
       model: this.model,
@@ -219,7 +235,7 @@ Strategy to follow:
 - Closing: ${strategy.closingStyle}
 
 Tone: ${tone}
-Target length: ~${maxWords} words${voiceContext}
+Target length: ~${maxWords} words${voiceContext}${identityContext}
 
 After the letter, on a new line write: CONFIDENCE: <0.0-1.0>`,
       messages: [
