@@ -11,7 +11,6 @@
  * No API key required. Node 20+ fetch used throughout.
  */
 
-import { nanoid } from "nanoid";
 import pLimit from "p-limit";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { BaseAgent } from "./base_agent.js";
@@ -431,7 +430,7 @@ export class HNAgent extends BaseAgent {
       : `https://news.ycombinator.com/item?id=${item.id}`;
 
     return {
-      id: `hn_${nanoid(10)}`,
+      id: `hn_${item.id}`,
       source: "ycombinator",
       sourceId: String(item.id),
       title,

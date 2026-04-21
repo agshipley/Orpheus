@@ -115,6 +115,7 @@ export class JobStore {
         ?, ?, ?
       )
       ON CONFLICT(dedup_key) DO UPDATE SET
+        id = excluded.id,
         match_score = COALESCE(excluded.match_score, match_score),
         match_reasoning = COALESCE(excluded.match_reasoning, match_reasoning),
         scraped_at = excluded.scraped_at
