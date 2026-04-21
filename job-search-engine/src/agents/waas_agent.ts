@@ -1,15 +1,16 @@
 /**
- * WaaSAgent — Fetches job listings from Work at a Startup (YC's job board).
+ * WaaSAgent — Work at a Startup (YC's job board).
  *
- * workatastartup.com is the primary source for this profile: YC companies are
- * the core target market (AI / developer tools / seed-stage startups).
+ * DEPRECATED / INERT: This agent reliably returns 0 results because
+ * workatastartup.com is fully client-side rendered. The page HTML contains
+ * only a skeleton; job listings are fetched post-load via an undocumented
+ * internal API. Our __NEXT_DATA__ extraction approach therefore finds nothing.
  *
- * Approach: fetch the SSR Next.js page and extract the embedded __NEXT_DATA__
- * JSON rather than using WaaS's unpublished internal API, which is not versioned
- * or stable. If the page structure changes and we can't find a jobs array,
- * we return 0 results gracefully so Jobicy + HN still serve the search.
- *
- * No API key required. Node 20+ fetch used throughout.
+ * We chose not to pursue headless scraping (Playwright/Puppeteer) because the
+ * operational cost (binary dep, memory, cold-start time) outweighs the benefit
+ * while Jobicy and HN are covering the volume. The agent is left in place and
+ * registered so it can be activated if a stable public API surfaces. Remove
+ * "waas" from agents.sources in config to keep it dormant.
  */
 
 import { nanoid } from "nanoid";
