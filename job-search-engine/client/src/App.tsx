@@ -7,6 +7,7 @@ import ObservatoryPage from "./pages/ObservatoryPage";
 import TunePage from "./pages/TunePage";
 import TonightPage from "./pages/TonightPage";
 import PackagePage from "./pages/PackagePage";
+import InterrogatorPage from "./pages/InterrogatorPage";
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<Navigate to="/tonight" replace />} />
         <Route path="/tonight" element={<TonightPage />} />
         <Route path="/package" element={<PackagePage />} />
+        <Route path="/interrogator" element={<InterrogatorPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/matches" element={<MatchesPage />} />
         <Route path="/tracker" element={<TrackerPage />} />

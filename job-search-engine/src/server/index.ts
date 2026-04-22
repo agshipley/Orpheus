@@ -43,6 +43,14 @@ import { regeneratePositioningHandler, getPositioningHandler } from "./routes/po
 import { matchesHandler } from "./routes/matches.js";
 import { tonightHandler } from "./routes/tonight.js";
 import { packageHandler, downloadResumeHandler, downloadCoverLetterHandler } from "./routes/package.js";
+import {
+  startInterrogatorHandler,
+  respondInterrogatorHandler,
+  endInterrogatorHandler,
+  listInterrogatorSessionsHandler,
+  getInterrogatorSessionHandler,
+  ensureInterrogatorDir,
+} from "./routes/interrogator.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -105,6 +113,12 @@ app.post("/api/package", packageHandler);
 app.post("/api/package/download/resume", downloadResumeHandler);
 app.post("/api/package/download/cover-letter", downloadCoverLetterHandler);
 
+app.post("/api/interrogator/start", startInterrogatorHandler);
+app.post("/api/interrogator/respond", respondInterrogatorHandler);
+app.post("/api/interrogator/end", endInterrogatorHandler);
+app.get("/api/interrogator/sessions", listInterrogatorSessionsHandler);
+app.get("/api/interrogator/session/:filename", getInterrogatorSessionHandler);
+
 // ─── Health check ─────────────────────────────────────────────────
 
 app.get("/api/health", (_req, res) => {
@@ -130,6 +144,9 @@ if (IS_PROD) {
 }
 
 // ─── Start ────────────────────────────────────────────────────────
+
+// Ensure interrogator directory exists on volume before first request
+ensureInterrogatorDir();
 
 app.listen(PORT, () => {
   console.log(

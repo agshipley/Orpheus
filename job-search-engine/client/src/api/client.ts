@@ -15,6 +15,11 @@ import type {
   PackageResponse,
   ResumeStructured,
   CoverLetterStructured,
+  InterrogatorSessionMeta,
+  StartSessionResponse,
+  RespondResponse,
+  EndSessionResponse,
+  SessionDetailResponse,
 } from "../types";
 
 const BASE = "/api";
@@ -173,6 +178,30 @@ export const downloadResumeDocx = async (structured: ResumeStructured, company: 
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 };
+
+// ─── Interrogator ─────────────────────────────────────────────────
+
+export const startInterrogatorSession = (params: {
+  mode: "reader_role" | "ambient";
+  posting?: string;
+  prompt?: string;
+}): Promise<StartSessionResponse> =>
+  req("/interrogator/start", json(params));
+
+export const sendInterrogatorResponse = (
+  session_id: string,
+  user_message: string
+): Promise<RespondResponse> =>
+  req("/interrogator/respond", json({ session_id, user_message }));
+
+export const endInterrogatorSession = (session_id: string): Promise<EndSessionResponse> =>
+  req("/interrogator/end", json({ session_id }));
+
+export const listInterrogatorSessions = (): Promise<{ sessions: InterrogatorSessionMeta[] }> =>
+  req("/interrogator/sessions");
+
+export const getInterrogatorSession = (filename: string): Promise<SessionDetailResponse> =>
+  req(`/interrogator/session/${encodeURIComponent(filename)}`);
 
 export const downloadCoverLetterDocx = async (structured: CoverLetterStructured, company: string): Promise<void> => {
   const res = await fetch("/api/package/download/cover-letter", {

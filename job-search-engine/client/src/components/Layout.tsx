@@ -2,9 +2,10 @@ import { NavLink } from "react-router-dom";
 import type { ReactNode } from "react";
 
 const NAV = [
-  { to: "/tonight",     label: "Tonight",     icon: TonightIcon },
-  { to: "/package",     label: "Package",     icon: PackageIcon },
-  { to: "/search",      label: "Search",      icon: SearchIcon },
+  { to: "/tonight",      label: "Tonight",      icon: TonightIcon      },
+  { to: "/package",      label: "Package",      icon: PackageIcon      },
+  { to: "/interrogator", label: "Interrogator", icon: InterrogatorIcon },
+  { to: "/search",       label: "Search",       icon: SearchIcon       },
   { to: "/matches",     label: "Matches",     icon: MatchIcon  },
   { to: "/tracker",     label: "Tracker",     icon: KanbanIcon },
   { to: "/tune",        label: "Tune",        icon: TuneIcon },
@@ -51,6 +52,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 }
 
 // ─── Inline icons ─────────────────────────────────────────────────
+
+function InterrogatorIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <circle cx="8" cy="8" r="6" />
+      <path d="M8 5.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5c0 1-1.5 1.5-1.5 2.5" strokeLinecap="round" />
+      <circle cx="9.5" cy="11" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
 
 function PackageIcon({ className }: { className?: string }) {
   return (

@@ -367,6 +367,53 @@ export interface PackageResponse {
   outreach_email: { subject: string; body: string; error?: string };
 }
 
+// ─── Interrogator types ───────────────────────────────────────────
+
+export interface InterrogatorSessionMeta {
+  session_id: string;
+  filename: string;
+  mode: "reader_role" | "ambient";
+  seed_preview: string;
+  started_at: string;
+  ended_at: string | null;
+  message_count: number;
+}
+
+export interface InterrogatorMessage {
+  role: "interrogator" | "andrew";
+  text: string;
+}
+
+export interface StartSessionResponse {
+  session_id: string;
+  filename: string;
+  opening_message: string;
+  reader_frame?: ReaderFrame;
+}
+
+export interface RespondResponse {
+  interrogator_message: string;
+}
+
+export interface EndSessionResponse {
+  filename: string;
+  message_count: number;
+  duration_ms: number;
+}
+
+export interface SessionDetailResponse {
+  content: string;
+  metadata: {
+    mode: "reader_role" | "ambient";
+    seed: string;
+    reader_frame: ReaderFrame | null;
+    started_at: string;
+    ended_at: string | null;
+    message_count: number;
+  };
+  messages: InterrogatorMessage[];
+}
+
 // ─── Tracker / Kanban types ───────────────────────────────────────
 
 export type KanbanStatus = "saved" | "applied" | "interview" | "offer" | "rejected";
