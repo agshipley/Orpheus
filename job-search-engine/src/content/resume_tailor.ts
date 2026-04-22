@@ -13,6 +13,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { nanoid } from "nanoid";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js";
 import type {
   UserProfile,
@@ -24,6 +26,22 @@ import type {
 } from "../types.js";
 
 type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+function readPositioningContext(): string {
+  const path = join(process.cwd(), "POSITIONING.md");
+  if (!existsSync(path)) return "";
+  const content = readFileSync(path, "utf-8").trim();
+  if (!content) return "";
+  return `\n\nCANDIDATE POSITIONING CONTEXT (read before writing — this defines the posture):\n${content}`;
+}
+
+const EVALUATOR_POSTURE = `
+CANDIDATE POSTURE — THIS IS NON-NEGOTIABLE:
+This candidate is evaluating whether this opportunity is worth his time — not applying for it. Write from that posture throughout.
+- Open the resume summary (if present) with a sharp statement of the candidate's operating shape and the problem type he solves, not with "experienced professional" or similar
+- Emphasize shipped systems by name (first-agent, charlie, mrkt, NLSAFE, Orpheus) when relevant to the role
+- Use declarative framing: "ships production AI systems," "deployed for named clients," "builds systems that named businesses use daily"
+- Never use: "excited to apply," "would love to," "grateful for the opportunity," "passionate about," "results-driven"`.trim();
 
 function buildGithubSignalContext(
   identity: IdentityKey | undefined,
@@ -331,10 +349,11 @@ Return JSON array:
     const identityContext = this.buildIdentityContext(profile, identity);
     const githubContext = buildGithubSignalContext(identity, githubSignal);
 
+    const positioningContext = readPositioningContext();
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 4000,
-      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.${voiceContext}${identityContext}${githubContext}`,
+      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.\n\n${EVALUATOR_POSTURE}${positioningContext}${voiceContext}${identityContext}${githubContext}`,
       messages: [
         {
           role: "user",

@@ -197,6 +197,32 @@ function MatchAnalysis({ job }: { job: JobListing }) {
             </div>
           );
         })}
+
+        {/* Compound fit */}
+        {(job.compound_fit ?? 0) >= 2 && (
+          <div className="rounded-lg border border-violet-800/50 bg-violet-950/20 px-3 py-2">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] font-semibold font-mono text-violet-400">×{job.compound_fit}</span>
+              <span className="text-xs text-violet-400 font-medium">Why this role spans multiple sides of your profile</span>
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              {job.compound_fit} of 4 identities score ≥ 40 on this role — compound fit bonus applied.
+            </p>
+          </div>
+        )}
+
+        {/* Asymmetry flag */}
+        {job.asymmetry_fit === "high" && (
+          <div className="rounded-lg border border-orange-800/50 bg-orange-950/20 px-3 py-2">
+            <div className="flex items-center gap-2 mb-0.5">
+              <span className="text-[10px] font-semibold font-mono text-orange-400">↑</span>
+              <span className="text-xs text-orange-400 font-medium">Step-change hire signal</span>
+            </div>
+            <p className="text-[11px] text-zinc-500">
+              Multiple asymmetry signals fired — the company likely needs you more than you need them.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -17,7 +17,8 @@ import pLimit from "p-limit";
 import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js";
 import { createAgentPool } from "../agents/index.js";
 import type { BaseAgent } from "../agents/base_agent.js";
-import { scoreJob } from "./ranker.js";
+import { scoreJob, computeGithubSignalBoost, flagAsymmetry } from "./ranker.js";
+import { JobStore } from "../storage/job_store.js";
 import { FeedbackStore } from "../storage/feedback_store.js";
 import type {
   Config,
@@ -74,6 +75,15 @@ const WIDE_QUERIES: Record<string, SearchQuery> = {
     raw: "AI safety policy research governance",
     title: "research",
     skills: ["research", "policy", "AI safety", "governance", "analysis"],
+    remote: false,
+    maxResults: 100,
+    industries: [],
+    excludeCompanies: [],
+  },
+  applied_ai_operator: {
+    raw: "head of AI director applied AI operations",
+    title: "AI",
+    skills: ["AI", "LLM", "applied AI", "AI strategy", "machine learning"],
     remote: false,
     maxResults: 100,
     industries: [],
@@ -543,19 +553,53 @@ Schema:
 
     const scored = jobs.map((job) => {
       const jobScore = scoreJob(job, query, profile, orgAdjacency, identityWeights, githubSignal);
-      return { job, jobScore };
+      const boost = computeGithubSignalBoost(job, jobScore.matchedIdentity, githubSignal);
+      const asymmetry_fit = flagAsymmetry(job, jobScore.compound_fit, boost?.pts ?? 0);
+      return { job, jobScore, asymmetry_fit };
     });
 
     scored.sort((a, b) => b.jobScore.score - a.jobScore.score);
 
-    return scored.map(({ job, jobScore }) => ({
+    return scored.map(({ job, jobScore, asymmetry_fit }) => ({
       ...job,
       matchScore: jobScore.score,
       matchedIdentity: jobScore.matchedIdentity,
       identityReasons: Object.fromEntries(
         Object.entries(jobScore.identityScores).map(([k, v]) => [k, v.reasons])
       ),
+      compound_fit: jobScore.compound_fit > 0 ? jobScore.compound_fit : undefined,
+      asymmetry_fit,
     }));
+  }
+
+  /**
+   * Loads stored jobs, re-scores them, and returns those flagged asymmetry_fit=high.
+   * Used by GET /api/matches — no new search triggered.
+   */
+  async getMatches(): Promise<JobListing[]> {
+    const store = new JobStore(this.config.storage.dbPath);
+    try {
+      const recent = store.getTopJobs(200);
+      if (recent.length === 0) return [];
+      const broadQuery: SearchQuery = {
+        raw: "operator legal research AI operations",
+        skills: [],
+        industries: [],
+        excludeCompanies: [],
+        maxResults: 200,
+      };
+      const ranked = this.heuristicRank(recent, broadQuery);
+      return ranked
+        .filter((j) => j.asymmetry_fit === "high")
+        .sort((a, b) => {
+          const cfA = a.compound_fit ?? 0;
+          const cfB = b.compound_fit ?? 0;
+          if (cfB !== cfA) return cfB - cfA;
+          return (b.matchScore ?? 0) - (a.matchScore ?? 0);
+        });
+    } finally {
+      store.close();
+    }
   }
 
   private estimateCost(tokens: number): number {

@@ -127,3 +127,16 @@ export const getProfile = (): Promise<{
   skills: string[];
   targetTitles: string[];
 }> => req("/config/profile");
+
+// ─── Matches ──────────────────────────────────────────────────────
+
+export const getMatches = (): Promise<{ jobs: JobListing[]; count: number }> =>
+  req("/matches");
+
+// ─── Positioning ──────────────────────────────────────────────────
+
+export const getPositioning = (): Promise<{ content: string }> =>
+  req("/positioning");
+
+export const regeneratePositioning = (): Promise<{ ok: boolean; length: number }> =>
+  req("/positioning/regenerate", json({}));

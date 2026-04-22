@@ -232,7 +232,15 @@ export default function SearchPage() {
                     style={{ animationDelay: `${i * 28}ms` }}
                   >
                     <td className="px-6 py-4">
-                      <div className="font-medium text-zinc-100 leading-tight">{job.title}</div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-medium text-zinc-100 leading-tight">{job.title}</span>
+                        {job.asymmetry_fit === "high" && (
+                          <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold font-mono tracking-wider border text-orange-400 border-orange-800 bg-orange-950/30" title="Step-change hire signal">↑</span>
+                        )}
+                        {(job.compound_fit ?? 0) >= 2 && (
+                          <span className="inline-flex items-center px-1 py-0.5 rounded text-[9px] font-semibold font-mono tracking-wider border text-violet-400 border-violet-800 bg-violet-950/30" title={`Compound fit ×${job.compound_fit}`}>×{job.compound_fit}</span>
+                        )}
+                      </div>
                       {job.remote && (
                         <span className="text-[10px] text-emerald-500 font-medium mt-0.5 block">Remote</span>
                       )}

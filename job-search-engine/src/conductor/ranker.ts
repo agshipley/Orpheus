@@ -30,6 +30,8 @@ export interface JobScore {
   rawScore: number;                           // raw points before normalisation
   matchedIdentity: IdentityKey;
   identityScores: Record<IdentityKey, IdentityScore>;
+  compound_fit: number;                       // 0–4: how many identities scored ≥ 40
+  compound_fit_bonus: number;                 // 0/15/25/35 added to winner
 }
 
 // The theoretical maximum for base signals: 60+40+30+15+10+5 = 160.
@@ -71,6 +73,75 @@ export function computeGithubSignalBoost(
   const pts = Math.min(20, hits.length * 5);
   const topHits = hits.slice(0, 3).join(", ");
   return { pts, reason: `GitHub signal: ${topHits}${hits.length > 3 ? ` +${hits.length - 3} more` : ""} (+${pts})` };
+}
+
+// ─── Compound-fit scoring ─────────────────────────────────────────
+
+/**
+ * Count identities with raw score ≥ 40 and compute the compound-fit bonus
+ * (+15 for 2, +25 for 3, +35 for 4) added to the winning identity's score.
+ */
+export function computeCompoundFit(
+  identityScores: Record<IdentityKey, IdentityScore>
+): { count: number; bonus: number } {
+  const count = (Object.values(identityScores) as IdentityScore[]).filter(
+    (s) => s.score >= 40
+  ).length;
+  const bonus = count >= 4 ? 35 : count === 3 ? 25 : count === 2 ? 15 : 0;
+  return { count, bonus };
+}
+
+// ─── Asymmetry detection ──────────────────────────────────────────
+
+const ASYMMETRY_GAP_PHRASES = [
+  "looking for someone who can",
+  "help us figure out",
+  "new function",
+  "first hire",
+  "0-to-1",
+  "zero to one",
+  "build the team",
+  "first of its kind",
+  "hasn't been done",
+  "building from scratch",
+  "build from scratch",
+  "greenfield",
+  "no playbook",
+  "define the role",
+  "write the playbook",
+];
+
+const ASYMMETRY_SENIOR_TITLE_TOKENS = ["head of", "director", "founding", "vp of", "lead"];
+const ASYMMETRY_SMALL_CO_SIGNALS = [
+  "seed", "series a", "early stage", "small team", "growing team", "startup",
+  "pre-series", "pre-seed",
+];
+
+/**
+ * Flag a job as asymmetry_fit=high when ≥ 2 of 4 signals fire:
+ *   1. Capability-gap language in description
+ *   2. compound_fit ≥ 2 (role spans multiple identity profiles)
+ *   3. Senior title + small-company signals
+ *   4. github_signal boost ≥ +15 on the winning identity
+ */
+export function flagAsymmetry(
+  job: JobListing,
+  compound_fit: number,
+  githubBoostPts: number
+): "high" | "none" {
+  const desc = job.description.toLowerCase();
+  const title = job.title.toLowerCase();
+  let signals = 0;
+
+  if (ASYMMETRY_GAP_PHRASES.some((p) => desc.includes(p))) signals++;
+  if (compound_fit >= 2) signals++;
+  if (
+    ASYMMETRY_SENIOR_TITLE_TOKENS.some((p) => title.includes(p)) &&
+    ASYMMETRY_SMALL_CO_SIGNALS.some((p) => desc.includes(p))
+  ) signals++;
+  if (githubBoostPts >= 15) signals++;
+
+  return signals >= 2 ? "high" : "none";
 }
 
 // ─── Per-identity scorer ──────────────────────────────────────────
@@ -269,6 +340,8 @@ export function scoreJob(
         research:           { score: 0, reasons: [] },
         applied_ai_operator: { score: 0, reasons: [] },
       },
+      compound_fit: 0,
+      compound_fit_bonus: 0,
     };
   }
 
@@ -298,11 +371,19 @@ export function scoreJob(
   entries.sort((a, b) => b[1].score - a[1].score);
   const [matchedIdentity, winner] = entries[0];
 
+  const { count: compound_fit, bonus: compound_fit_bonus } = computeCompoundFit(identityScores);
+  const adjustedScore = winner.score + compound_fit_bonus;
+  if (compound_fit_bonus > 0) {
+    winner.reasons.push(`Compound fit ×${compound_fit} identities (+${compound_fit_bonus})`);
+  }
+
   return {
-    score: Math.min(1, winner.score / MAX_RAW_SCORE),
-    rawScore: winner.score,
+    score: Math.min(1, adjustedScore / MAX_RAW_SCORE),
+    rawScore: adjustedScore,
     matchedIdentity,
     identityScores,
+    compound_fit,
+    compound_fit_bonus,
   };
 }
 

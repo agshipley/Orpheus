@@ -36,6 +36,8 @@ export const JobListingSchema = z.object({
   // Multi-identity ranking fields (set by Conductor, not agents)
   matchedIdentity: z.enum(["operator", "legal", "research", "applied_ai_operator"]).optional(),
   identityReasons: z.record(z.array(z.string())).optional(),
+  compound_fit: z.number().int().min(0).max(4).optional(),
+  asymmetry_fit: z.enum(["high", "none"]).optional(),
 });
 
 export type JobListing = z.infer<typeof JobListingSchema>;

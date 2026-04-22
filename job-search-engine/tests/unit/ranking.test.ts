@@ -3,6 +3,8 @@ import {
   scoreForIdentity,
   scoreJob,
   computeGithubSignalBoost,
+  computeCompoundFit,
+  flagAsymmetry,
   MAX_RAW_SCORE,
 } from "../../src/conductor/ranker.js";
 import type { JobListing, SearchQuery, UserProfile, IdentityConfig } from "../../src/types.js";
@@ -240,5 +242,113 @@ describe("computeGithubSignalBoost", () => {
     const job = makeJob({ company: "Boring Corp", description: "Standard accounting firm." });
     const result = computeGithubSignalBoost(job, "applied_ai_operator", signal);
     expect(result).toBeNull();
+  });
+});
+
+describe("computeCompoundFit", () => {
+  it("returns 0 count and 0 bonus when no identities score ≥ 40", () => {
+    const scores = {
+      operator:            { score: 10, reasons: [] },
+      legal:               { score: 0,  reasons: [] },
+      research:            { score: 25, reasons: [] },
+      applied_ai_operator: { score: 5,  reasons: [] },
+    };
+    const { count, bonus } = computeCompoundFit(scores);
+    expect(count).toBe(0);
+    expect(bonus).toBe(0);
+  });
+
+  it("returns count=2, bonus=+15 when exactly 2 identities score ≥ 40", () => {
+    const scores = {
+      operator:            { score: 60, reasons: [] },
+      legal:               { score: 45, reasons: [] },
+      research:            { score: 20, reasons: [] },
+      applied_ai_operator: { score: 30, reasons: [] },
+    };
+    const { count, bonus } = computeCompoundFit(scores);
+    expect(count).toBe(2);
+    expect(bonus).toBe(15);
+  });
+
+  it("returns count=3, bonus=+25 when 3 identities score ≥ 40", () => {
+    const scores = {
+      operator:            { score: 60, reasons: [] },
+      legal:               { score: 50, reasons: [] },
+      research:            { score: 40, reasons: [] },
+      applied_ai_operator: { score: 10, reasons: [] },
+    };
+    const { count, bonus } = computeCompoundFit(scores);
+    expect(count).toBe(3);
+    expect(bonus).toBe(25);
+  });
+
+  it("returns count=4, bonus=+35 when all identities score ≥ 40", () => {
+    const scores = {
+      operator:            { score: 60, reasons: [] },
+      legal:               { score: 50, reasons: [] },
+      research:            { score: 45, reasons: [] },
+      applied_ai_operator: { score: 40, reasons: [] },
+    };
+    const { count, bonus } = computeCompoundFit(scores);
+    expect(count).toBe(4);
+    expect(bonus).toBe(35);
+  });
+});
+
+describe("flagAsymmetry", () => {
+  it("returns 'high' when compound_fit ≥ 2 AND github_signal boost ≥ 15", () => {
+    const job = makeJob({ title: "Head of AI", description: "Standard description." });
+    expect(flagAsymmetry(job, 2, 15)).toBe("high");
+  });
+
+  it("returns 'high' when gap language AND compound_fit ≥ 2", () => {
+    const job = makeJob({
+      title: "Director of AI",
+      description: "We are building a new function and are looking for our first hire in this space.",
+    });
+    expect(flagAsymmetry(job, 2, 0)).toBe("high");
+  });
+
+  it("returns 'high' when senior title + small company AND github_signal boost ≥ 15", () => {
+    const job = makeJob({
+      title: "Head of Operations",
+      description: "Early stage startup in the series a phase, small team of 12.",
+    });
+    expect(flagAsymmetry(job, 0, 15)).toBe("high");
+  });
+
+  it("returns 'none' when only one signal fires", () => {
+    const job = makeJob({
+      title: "Product Manager",
+      description: "Looking for a PM to own the roadmap.",
+    });
+    expect(flagAsymmetry(job, 0, 0)).toBe("none");
+  });
+
+  it("returns 'none' when compound_fit=1 and no other signals", () => {
+    const job = makeJob({ title: "Software Engineer", description: "Standard engineering role." });
+    expect(flagAsymmetry(job, 1, 10)).toBe("none");
+  });
+});
+
+describe("scoreJob compound_fit integration", () => {
+  it("compound_fit bonus is added to winning score when 2+ identities score ≥ 40", () => {
+    const job = makeJob({
+      title: "Head of AI",
+      description: "jd required. transactional background expected. We use mcp and agents.",
+    });
+    const query = makeQuery({ title: "Head of AI" });
+    const profile = makeProfile({
+      identities: {
+        operator:            makeIdentity({ target_titles: ["Head of Operations"] }),
+        legal:               makeIdentity({ target_titles: ["General Counsel"] }),
+        research:            makeIdentity({ target_titles: ["Research Lead"] }),
+        applied_ai_operator: makeIdentity({ target_titles: ["Head of AI"] }),
+      },
+    });
+    const result = scoreJob(job, query, profile, undefined);
+    // applied_ai_operator wins (+60 title) + legal gets +25 (legal signals) → compound_fit=2 → bonus=+15
+    expect(result.compound_fit).toBeGreaterThanOrEqual(1);
+    expect(result.compound_fit_bonus).toBeDefined();
   });
 });

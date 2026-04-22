@@ -277,3 +277,38 @@ These are architectural characteristics of Orpheus as currently deployed. Not bu
 - **2026-04-21** — Initial canonical state file created. Captures everything through Phase 2.5 shipped (commit `3424f48`), three-identity ranker live, portfolio identified (NLSAFE replaces earlier "Achilles" placeholder), Railway volume discipline formalized, `github_signal` block proposed but not yet shipped.
 - **2026-04-21** — Fourth identity (`applied_ai_operator`) + `github_signal` block shipped. Six portfolio entries finalized (NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual). AAI badge (teal) added to UI. All content generators updated with filtered github_signal injection. 52 tests passing.
 - **2026-04-21** — CW_Actual reclassified as tier-2 craft/systems-design credential following substantive README update. Added to github_signal block with identity_boosts [applied_ai_operator, operator]. All six portfolio repos now slotted for GitHub profile pinning (GitHub max). "Leave CW_Actual unpinned" decision reversed.
+- **2026-04-21** — Asymmetry filter, compound-fit scoring, `/matches` primary view, evaluator posture in content generators, `POSITIONING.md` living artifact shipped. 62 tests passing. See Section 11.
+
+---
+
+## 11. Philosophical Orientation
+
+Orpheus exists to find **10x and 100x roles** — positions where the candidate's unusual combination of credentials creates a hiring asymmetry the employer probably cannot resolve any other way. A lawyer who ran operations at a quantum computing company and built an AI search tool is not a marginal candidate for most roles; they are the only viable candidate for a small class of roles. The goal is to identify that class and apply there exclusively, not to apply broadly.
+
+### The asymmetry frame
+
+Standard job search optimizes for match rate. Orpheus optimizes for **leverage asymmetry**: roles where the company's need for the candidate is greater than the candidate's need for the role. These roles are rare and hard to surface by keyword search alone. They share structural features:
+
+- **Greenfield mandates**: the company is hiring for a function that does not yet exist ("first hire," "build from scratch," "0-to-1")
+- **Compound profile fit**: the role spans multiple sides of the candidate's profile simultaneously — legal judgment + operational execution + AI fluency is not a common combination
+- **AI-adjacent senior roles at frontier orgs**: research-adjacent or policy-adjacent positions at Tier-1 AI labs where the candidate's combination of legal training and AI build experience is genuinely rare
+- **Senior titles at early-stage companies**: "Head of X" at seed or Series A, where the company is hiring a function-owner who will define the role, not fill a pre-specified one
+
+### POSITIONING.md as living artifact
+
+`job-search-engine/POSITIONING.md` is the canonical statement of competitive positioning for content generation. It has two sections:
+
+- **Section 1** (auto-generated): template fill from `archimedes.config.yaml` — identities, target titles, key credentials, portfolio projects. Regenerated via `POST /api/positioning/regenerate` whenever config changes.
+- **Section 2** (human-curated): narrative positioning, voice constraints, framing preferences. This section survives regenerations — it is the "why" behind the config data and must be maintained by hand.
+
+All three content generators (resume tailor, cover letter, email drafter) read POSITIONING.md at prompt time and inject it before identity-specific context. The evaluator posture constant (`EVALUATOR_POSTURE`) injected into every generator system prompt reinforces that content should be written from the perspective of someone evaluating whether the role is worth their time, not someone hoping to be selected.
+
+### Portfolio-as-proof-of-AI-fluency
+
+The six GitHub repos (NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual) are not primarily demo pieces — they are evidence that the candidate already operates at the level being hired for. Orpheus itself is the most direct proof: it is an MCP-architecture parallel agent system deployed on Railway, with four-identity ranking, compound-fit scoring, and asymmetry detection. A candidate who built this system is not learning to work with AI; they are already doing it.
+
+The `github_signal` block in `archimedes.config.yaml` encodes this: when a job description contains keywords from portfolio projects, the ranker awards a signal boost because the portfolio directly addresses what the company is building. The boost is evidence-weighted, not keyword-matched.
+
+### Applying from strength
+
+Content generators are calibrated to evaluator posture, not applicant posture. The operative framing: Andrew has approximately the right background for fewer than 100 companies at any given time. For those companies, he is not one of many candidates — he is likely the only person who holds the specific combination of credentials they need. Application materials should reflect that, not hedge against it.

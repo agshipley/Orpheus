@@ -26,6 +26,8 @@ export interface JobListing {
   matchReasoning?: string;
   matchedIdentity?: "operator" | "legal" | "research" | "applied_ai_operator";
   identityReasons?: Record<string, string[]>;
+  compound_fit?: number;
+  asymmetry_fit?: "high" | "none";
 }
 
 export interface SearchStats {

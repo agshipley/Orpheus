@@ -39,6 +39,8 @@ import {
   regenerateSummaryHandler,
   feedbackStatusHandler,
 } from "./routes/feedback.js";
+import { regeneratePositioningHandler, getPositioningHandler } from "./routes/positioning.js";
+import { matchesHandler } from "./routes/matches.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -91,6 +93,10 @@ app.get("/api/metrics", metricsHandler);
 app.get("/api/decisions", decisionsHandler);
 
 app.get("/api/config/profile", profileHandler);
+
+app.get("/api/matches", matchesHandler);
+app.get("/api/positioning", getPositioningHandler);
+app.post("/api/positioning/regenerate", regeneratePositioningHandler);
 
 // ─── Health check ─────────────────────────────────────────────────
 

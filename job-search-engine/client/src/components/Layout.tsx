@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 const NAV = [
   { to: "/search",      label: "Search",      icon: SearchIcon },
+  { to: "/matches",     label: "Matches",     icon: MatchIcon  },
   { to: "/tracker",     label: "Tracker",     icon: KanbanIcon },
   { to: "/tune",        label: "Tune",        icon: TuneIcon },
   { to: "/observatory", label: "Observatory", icon: RadarIcon },
@@ -54,6 +55,16 @@ function SearchIcon({ className }: { className?: string }) {
     <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="6.5" cy="6.5" r="4" />
       <path d="M11 11l3 3" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function MatchIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M8 2v4m0 0l-2-2m2 2l2-2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="8" cy="10" r="3" />
+      <path d="M8 7v0" strokeLinecap="round" />
     </svg>
   );
 }

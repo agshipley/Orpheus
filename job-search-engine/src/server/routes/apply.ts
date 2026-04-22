@@ -23,7 +23,7 @@ export async function applyHandler(req: Request, res: Response): Promise<void> {
     };
 
   const identityKey: IdentityKey | undefined =
-    identity === "operator" || identity === "legal" || identity === "research"
+    identity === "operator" || identity === "legal" || identity === "research" || identity === "applied_ai_operator"
       ? identity
       : undefined;
 
@@ -60,8 +60,9 @@ export async function applyHandler(req: Request, res: Response): Promise<void> {
     const result: Record<string, unknown> = { jobId, job };
 
     // Default identity to the job's matched identity if not explicitly overridden
+    const validIdentities: IdentityKey[] = ["operator", "legal", "research", "applied_ai_operator"];
     const effectiveIdentity = identityKey ?? (
-      job.matchedIdentity === "operator" || job.matchedIdentity === "legal" || job.matchedIdentity === "research"
+      validIdentities.includes(job.matchedIdentity as IdentityKey)
         ? job.matchedIdentity as IdentityKey
         : undefined
     );

@@ -11,6 +11,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { nanoid } from "nanoid";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js";
 import type {
   UserProfile,
@@ -23,6 +25,23 @@ import type {
 } from "../types.js";
 
 type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+function readPositioningContext(): string {
+  const path = join(process.cwd(), "POSITIONING.md");
+  if (!existsSync(path)) return "";
+  const content = readFileSync(path, "utf-8").trim();
+  if (!content) return "";
+  return `\n\nCANDIDATE POSITIONING CONTEXT (read before writing — this defines the posture):\n${content}`;
+}
+
+const EVALUATOR_POSTURE = `
+CANDIDATE POSTURE — THIS IS NON-NEGOTIABLE:
+This candidate is evaluating whether this opportunity is worth his time — not applying for it. Write from that posture throughout.
+- Open with a diagnosis of the company's likely problem or capability gap, not a personal introduction
+- Cite the portfolio project closest to that problem by name (first-agent, charlie, mrkt, NLSAFE, Orpheus, CW_Actual) in the first paragraph
+- Use declarative framing: "the shape of this role is," "the capability gap here reads as," "this is the problem I have been building around"
+- Never use: "excited to apply," "would love to," "grateful for the opportunity," "I believe I would be," "I am writing to express my interest"
+- Close by naming what would make this role worth the candidate's time — not what makes him worth the role`.trim();
 
 function buildGithubSignalContext(
   identity: IdentityKey | undefined,
@@ -239,11 +258,12 @@ export class CoverLetterGenerator {
     const voiceContext = this.buildVoiceContext(profile);
     const identityContext = this.buildIdentityContext(profile, identity);
     const githubContext = buildGithubSignalContext(identity, githubSignal);
+    const positioningContext = readPositioningContext();
 
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 3000,
-      system: `You are an expert cover letter writer. Write compelling, authentic cover letters that don't sound generic or AI-generated. Avoid clichés like "I am writing to express my interest" or "I would be a great fit." Every sentence should earn its place.
+      system: `You are an expert cover letter writer. Write compelling, authentic cover letters that don't sound generic or AI-generated. Every sentence should earn its place.\n\n${EVALUATOR_POSTURE}${positioningContext}
 
 Strategy to follow:
 - Name: ${strategy.name}

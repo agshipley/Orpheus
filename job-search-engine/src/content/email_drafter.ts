@@ -10,6 +10,8 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { nanoid } from "nanoid";
+import { existsSync, readFileSync } from "fs";
+import { join } from "path";
 import { getTracer, getMetrics } from "../observability/index.js";
 import type {
   UserProfile,
@@ -21,6 +23,16 @@ import type {
 } from "../types.js";
 
 type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+function readPositioningContext(): string {
+  const path = join(process.cwd(), "POSITIONING.md");
+  if (!existsSync(path)) return "";
+  const content = readFileSync(path, "utf-8").trim();
+  if (!content) return "";
+  return `\n\nCANDIDATE POSITIONING CONTEXT:\n${content}`;
+}
+
+const EVALUATOR_POSTURE = `CANDIDATE POSTURE: This candidate is evaluating whether this opportunity is worth his time. Write from that posture. Never use "excited to apply," "would love to," "grateful for the opportunity." Lead with specifics about the company's problem, not generic enthusiasm.`;
 
 function buildGithubSignalContext(
   identity: IdentityKey | undefined,
@@ -81,7 +93,7 @@ export class EmailDrafter {
         const response = await this.client.messages.create({
           model: this.model,
           max_tokens: 1500,
-          system: this.getSystemPrompt(context.type, tone) + this.buildIdentityContext(profile, identity) + buildGithubSignalContext(identity, githubSignal),
+          system: this.getSystemPrompt(context.type, tone) + "\n\n" + EVALUATOR_POSTURE + readPositioningContext() + this.buildIdentityContext(profile, identity) + buildGithubSignalContext(identity, githubSignal),
           messages: [
             {
               role: "user",
