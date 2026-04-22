@@ -29,12 +29,13 @@ function ScoreBadge({ score }: { score?: number }) {
   );
 }
 
-function IdentityBadge({ identity }: { identity?: "operator" | "legal" | "research" }) {
+function IdentityBadge({ identity }: { identity?: "operator" | "legal" | "research" | "applied_ai_operator" }) {
   if (!identity) return null;
   const map: Record<string, { label: string; color: string }> = {
-    operator: { label: "OP", color: "text-blue-400 border-blue-800" },
-    legal:    { label: "LEG", color: "text-amber-400 border-amber-800" },
-    research: { label: "RES", color: "text-emerald-400 border-emerald-800" },
+    operator:            { label: "OP",  color: "text-blue-400 border-blue-800"    },
+    legal:               { label: "LEG", color: "text-amber-400 border-amber-800"  },
+    research:            { label: "RES", color: "text-emerald-400 border-emerald-800" },
+    applied_ai_operator: { label: "AAI", color: "text-teal-400 border-teal-800"    },
   };
   const { label, color } = map[identity] ?? { label: "—", color: "text-zinc-500 border-zinc-700" };
   return (

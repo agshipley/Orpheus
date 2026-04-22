@@ -20,7 +20,21 @@ import type {
   ContentResult,
   ContentVariant,
   IdentityKey,
+  Config,
 } from "../types.js";
+
+type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+function buildGithubSignalContext(
+  identity: IdentityKey | undefined,
+  githubSignal?: GithubSignalEntry[]
+): string {
+  if (!identity || !githubSignal || githubSignal.length === 0) return "";
+  const relevant = githubSignal.filter((e) => e.identity_boosts.includes(identity));
+  if (relevant.length === 0) return "";
+  const list = relevant.map((e) => `- **${e.name}**: ${e.summary}`).join("\n");
+  return `\n\nRelevant personal projects to reference authentically when the role context warrants it. Do not force citations. Cite by name and the specific aspect that matches the role.\n${list}`;
+}
 
 interface TailoringStrategy {
   name: string;
@@ -60,7 +74,8 @@ export class ResumeTailor {
     profile: UserProfile,
     job: JobListing,
     variantCount: number = 2,
-    identity?: IdentityKey
+    identity?: IdentityKey,
+    githubSignal?: GithubSignalEntry[]
   ): Promise<ContentResult> {
     const rootSpan = this.tracer.startTrace("content.resume.tailor");
     rootSpan.setAttributes({
@@ -136,7 +151,8 @@ export class ResumeTailor {
               profile,
               job,
               strategy,
-              identity
+              identity,
+              githubSignal
             );
             span.setAttribute("content_length", result.content.length);
             totalTokens += result.tokensUsed;
@@ -308,15 +324,17 @@ Return JSON array:
     profile: UserProfile,
     job: JobListing,
     strategy: TailoringStrategy,
-    identity?: IdentityKey
+    identity?: IdentityKey,
+    githubSignal?: GithubSignalEntry[]
   ): Promise<{ content: string; confidence: number; tokensUsed: number }> {
     const voiceContext = this.buildVoiceContext(profile);
     const identityContext = this.buildIdentityContext(profile, identity);
+    const githubContext = buildGithubSignalContext(identity, githubSignal);
 
     const response = await this.client.messages.create({
       model: this.model,
       max_tokens: 4000,
-      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.${voiceContext}${identityContext}`,
+      system: `You are an expert resume writer. Generate a tailored resume following the given strategy. Output the resume in clean markdown format. After the resume, add a JSON block with your confidence score.${voiceContext}${identityContext}${githubContext}`,
       messages: [
         {
           role: "user",

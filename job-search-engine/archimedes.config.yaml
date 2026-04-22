@@ -385,6 +385,74 @@ profile:
         - "Director of Operations, Trace Machina (AI safety infrastructure)"
       score_weight: 1.0
 
+    applied_ai_operator:
+      target_titles:
+        - "Head of AI"
+        - "Head of Applied AI"
+        - "Director of AI"
+        - "Director of Applied AI"
+        - "Director of AI Strategy"
+        - "Director of AI Operations"
+        - "Director of AI Implementation"
+        - "AI Program Lead"
+        - "AI Program Manager"
+        - "Applied AI Lead"
+        - "Applied AI Manager"
+        - "Head of AI Implementation"
+        - "Head of AI Operations"
+        - "Head of AI Programs"
+        - "AI Operations Lead"
+        - "AI Deployment Lead"
+        - "Senior AI Program Manager"
+        - "Head of AI Strategy"
+        - "VP AI"
+        - "VP of AI"
+      positioning_guidance: >
+        Frame the candidate as an applied-AI operator who has shipped real
+        production AI systems for real clients across multiple verticals —
+        not a researcher, not an engineer, but the person who takes AI
+        capability and turns it into something a named business uses daily.
+        Evidence: first-agent deployed for Tre Borden /Co (public-art /
+        municipal-permit intelligence, 275 tests, Railway), charlie deployed
+        for Liz Varner (entertainment-industry multi-agent intelligence,
+        Railway cron), mrkt (research-grade empirical pipeline on M&A
+        corpus using Anthropic tool_use, 99.7% extraction success,
+        91-94% expert-label agreement), NLSAFE (verifiable build infra
+        for AI safety, Rust/LLVM IR/MLIR/Bazel→SLSA), Orpheus (self-search
+        engine on MCP with three-identity ranking, behavioral feedback).
+        This is rarer than "did ML research" and rarer than "used ChatGPT
+        at work" — it's the middle layer where most AI value actually gets
+        captured. Credentials on top: Yale Law JD, Rhodes Scholar DPhil
+        (Oxford, Experimental Psychology), Fulbright, three peer-reviewed
+        publications. The combination reads as "high-judgment operator
+        who happens to ship applied AI at the technical level," which is
+        the hiring profile for Head-of-AI and Director-of-AI roles at
+        non-AI-first companies, foundations, law firms, media companies,
+        and advisory shops.
+      resume_emphasis: >
+        Lead with shipped systems — first-agent and charlie as client
+        deployments, Orpheus as technical depth, mrkt as empirical rigor,
+        NLSAFE as safety-infra. Technical fluency (MCP, agentic systems,
+        tool_use, Claude, Railway, SSE streaming, Socrata connectors,
+        tool-schema design, behavioral feedback, three-identity ranking)
+        should be concrete, not hand-wavy. Trace Machina Director of Ops
+        role included SOC II + ARIA Safeguarded AI grant work, which
+        belongs here more than in operator framing. EeroQ CoS secondary.
+      cover_letter_emphasis: >
+        Open with what's been shipped and for whom, not with credentials.
+        Identify the specific AI-operations problem the target company
+        likely has and name which of the shipped systems is closest to it.
+        Yale / Rhodes / Fulbright come in the back half, if at all, as
+        evidence of judgment and analytical capacity — not as the lede.
+      key_credentials:
+        - "first-agent: production AI lead-gen + permit intelligence engine deployed on Railway for Tre Borden /Co (LA/NYC/SF, 275 tests, typology-based scoring, Socrata connectors)"
+        - "charlie: autonomous multi-agent entertainment-industry intelligence system deployed on Railway for Liz Varner (ingestion / analysis / brief / thesis agent architecture)"
+        - "mrkt: empirical M&A research pipeline with 152-agreement MAUD corpus, four Anthropic tool_use schemas, 99.7% extraction success, 91-94% expert-label agreement, monotonic abnormal-return amplification across 7/30/90/365-day windows, OLS with HC1 robust SEs"
+        - "NLSAFE: Rust-based verifiable build infrastructure for safety-critical AI (LLVM IR static scanner, MLIR dialect-aware audit, Bazel BEP → SLSA provenance transformer, Apache 2.0)"
+        - "Orpheus: AI job search engine on MCP architecture with four-identity ranker, behavioral feedback loop, Pylon observability layer"
+        - "Trace Machina / NativeLink: Director of Operations, 10x ARR to $1M, SOC II, ARIA Safeguarded AI grant technical narrative"
+      score_weight: 1.0
+
   projects:
     - name: "Archimedes"
       description: "AI-powered job search engine built on MCP with parallel agents and observability"
@@ -481,3 +549,124 @@ org_adjacency:
       - Code for America
       - Protect Democracy
       - The GovLab
+
+github_signal:
+  - name: NLSAFE
+    summary: "Rust-based verifiable build infrastructure for safety-critical AI systems — LLVM IR static scanner for unsafe memory patterns, MLIR dialect-aware audit tool for dynamic ops and layout violations, and a Bazel BEP → SLSA provenance transformer (Apache 2.0)."
+    identity_boosts: [research, operator, applied_ai_operator]
+    company_keywords:
+      - ai safety
+      - alignment
+      - interpretability
+      - verifiable
+      - provenance
+      - slsa
+      - supply chain
+      - build systems
+      - llvm
+      - mlir
+      - bazel
+      - rust
+      - infrastructure
+      - high assurance
+      - safety critical
+
+  - name: first-agent
+    summary: "Production AI system deployed for Tre Borden /Co. Two integrated tools: a Lead Finder using Claude with server-side web_search (SSE streaming, agentic loop, ICP 1-10 scoring, Deep Dive second-pass research) and a 947-line Permit Intelligence scoring engine covering LA/NYC/SF via Socrata connectors, with typology / owner-pattern / keyword / ordinance / valuation factors, 120+ owner patterns (developers, hotel brands, healthcare systems, transit authorities), and 275 passing tests. Flask + gunicorn on Railway, Apache 2.0."
+    identity_boosts: [applied_ai_operator, operator, research]
+    company_keywords:
+      - llm
+      - claude
+      - anthropic
+      - agents
+      - agentic
+      - mcp
+      - tool use
+      - production ai
+      - applied ai
+      - data pipelines
+      - socrata
+      - municipal data
+      - permit
+      - lead generation
+      - sales intelligence
+      - public sector
+      - sse
+      - streaming
+      - creative studio
+      - art commissioning
+
+  - name: charlie
+    summary: "Autonomous multi-agent intelligence system deployed on Railway for Liz Varner, covering the entertainment industry. Four agents: Ingestion (daily monitoring of Deadline, Variety, The Hollywood Reporter and similar narrative sources), Analysis (inference chains, narrative-vs-data discrepancy detection), Brief (three-tier output — Signal, Bullshit Flag, Your World), and Thesis (weekly synthesis and thesis-update proposals). Per-client persistent context layer (profile / slate / watching)."
+    identity_boosts: [applied_ai_operator, operator, research]
+    company_keywords:
+      - entertainment
+      - media
+      - film
+      - television
+      - studios
+      - talent agencies
+      - creator economy
+      - narrative intelligence
+      - trade press
+      - hollywood
+      - streaming
+      - publishing
+      - brand strategy
+      - content strategy
+      - multi agent
+      - autonomous agents
+      - intelligence platform
+
+  - name: mrkt
+    summary: "Empirical research pipeline on public-company M&A agreements. Four Anthropic tool_use schemas extracting termination provisions, efforts standards, MAC/MAE carveouts, and specific performance from the 152-agreement MAUD corpus (606/608 successful, 99.7%). Agentic outcome collection via Claude + web_search, abnormal-return calculation at 7/30/90/365-day windows with monotonic amplification confirmed, hand-rolled OLS with HC1-style robust SEs across six specifications (stdlib-only — no pandas/numpy/scipy, deliberate auditability). 91-94% agreement with MAUD expert labels."
+    identity_boosts: [legal, research, applied_ai_operator]
+    company_keywords:
+      - m&a
+      - transactional
+      - corporate law
+      - venture
+      - deals
+      - fund formation
+      - legal tech
+      - contract analysis
+      - provision extraction
+      - tool use
+      - structured extraction
+      - llm extraction
+      - empirical legal research
+      - law and economics
+      - sec
+      - edgar
+      - merger agreements
+      - econometrics
+
+  - name: Orpheus
+    summary: "Self-search engine built on MCP architecture with a four-identity ranker (operator, legal, research, applied_ai_operator) scoring each job independently and taking max. Behavioral feedback loop with five-point Likert and point-biserial weight tuning, Pylon observability layer (traces / metrics / decision logs), parallel-agent fan-out via Conductor, content generation pipeline for resume / cover letter / email with voice and positioning guidance per identity, SQLite on Railway volume."
+    identity_boosts: [applied_ai_operator, operator, research]
+    company_keywords:
+      - mcp
+      - model context protocol
+      - agents
+      - agentic
+      - observability
+      - ranking
+      - search
+      - personalization
+      - behavioral feedback
+      - preference learning
+      - applied ai
+      - developer tools
+      - ai infrastructure
+
+  - name: client-deployed AI systems
+    summary: "Two distinct production AI systems shipped for named clients across two verticals: first-agent for Tre Borden /Co (public-art and municipal-permit intelligence) and charlie for Liz Varner (entertainment-industry multi-agent intelligence). Pattern is rarer than either repo individually — applied-AI work for real clients outside the candidate's primary employer."
+    identity_boosts: [applied_ai_operator, operator]
+    company_keywords:
+      - client services
+      - advisory
+      - consulting
+      - fractional
+      - applied ai
+      - shipped ai
+      - production ai

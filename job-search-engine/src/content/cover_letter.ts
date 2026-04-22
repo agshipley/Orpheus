@@ -19,7 +19,21 @@ import type {
   ContentVariant,
   ContentRequest,
   IdentityKey,
+  Config,
 } from "../types.js";
+
+type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+function buildGithubSignalContext(
+  identity: IdentityKey | undefined,
+  githubSignal?: GithubSignalEntry[]
+): string {
+  if (!identity || !githubSignal || githubSignal.length === 0) return "";
+  const relevant = githubSignal.filter((e) => e.identity_boosts.includes(identity));
+  if (relevant.length === 0) return "";
+  const list = relevant.map((e) => `- **${e.name}**: ${e.summary}`).join("\n");
+  return `\n\nRelevant personal projects to reference authentically when the role context warrants it. Do not force citations. Cite by name and the specific aspect that matches the role.\n${list}`;
+}
 
 interface LetterStrategy {
   id: string;
@@ -80,6 +94,7 @@ export class CoverLetterGenerator {
       strategies?: string[];
       maxLength?: number;
       identity?: IdentityKey;
+      githubSignal?: GithubSignalEntry[];
     }
   ): Promise<ContentResult> {
     const rootSpan = this.tracer.startTrace("content.cover_letter.generate");
@@ -112,7 +127,8 @@ export class CoverLetterGenerator {
               strategy,
               options?.tone ?? "conversational",
               options?.maxLength ?? 400,
-              options?.identity
+              options?.identity,
+              options?.githubSignal
             );
             span.setAttributes({
               "strategy": strategy.id,
@@ -217,10 +233,12 @@ export class CoverLetterGenerator {
     strategy: LetterStrategy,
     tone: string,
     maxWords: number,
-    identity?: IdentityKey
+    identity?: IdentityKey,
+    githubSignal?: GithubSignalEntry[]
   ): Promise<{ content: string; confidence: number; tokensUsed: number }> {
     const voiceContext = this.buildVoiceContext(profile);
     const identityContext = this.buildIdentityContext(profile, identity);
+    const githubContext = buildGithubSignalContext(identity, githubSignal);
 
     const response = await this.client.messages.create({
       model: this.model,
@@ -235,7 +253,7 @@ Strategy to follow:
 - Closing: ${strategy.closingStyle}
 
 Tone: ${tone}
-Target length: ~${maxWords} words${voiceContext}${identityContext}
+Target length: ~${maxWords} words${voiceContext}${identityContext}${githubContext}
 
 After the letter, on a new line write: CONFIDENCE: <0.0-1.0>`,
       messages: [

@@ -24,7 +24,7 @@ export interface JobListing {
   tags: string[];
   matchScore?: number;
   matchReasoning?: string;
-  matchedIdentity?: "operator" | "legal" | "research";
+  matchedIdentity?: "operator" | "legal" | "research" | "applied_ai_operator";
   identityReasons?: Record<string, string[]>;
 }
 
@@ -153,7 +153,7 @@ export interface ApplyResult {
 
 // ─── Feedback / tuning types ─────────────────────────────────────
 
-export type IdentityKey = "operator" | "legal" | "research";
+export type IdentityKey = "operator" | "legal" | "research" | "applied_ai_operator";
 
 export interface FeedbackStats {
   total: number;

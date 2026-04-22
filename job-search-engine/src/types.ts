@@ -34,7 +34,7 @@ export const JobListingSchema = z.object({
   matchScore: z.number().min(0).max(1).optional(),
   matchReasoning: z.string().optional(),
   // Multi-identity ranking fields (set by Conductor, not agents)
-  matchedIdentity: z.enum(["operator", "legal", "research"]).optional(),
+  matchedIdentity: z.enum(["operator", "legal", "research", "applied_ai_operator"]).optional(),
   identityReasons: z.record(z.array(z.string())).optional(),
 });
 
@@ -70,7 +70,7 @@ export const IdentityConfigSchema = z.object({
 });
 
 export type IdentityConfig = z.infer<typeof IdentityConfigSchema>;
-export type IdentityKey = "operator" | "legal" | "research";
+export type IdentityKey = "operator" | "legal" | "research" | "applied_ai_operator";
 
 // ─── User Profile Types ───────────────────────────────────────────
 
@@ -133,6 +133,7 @@ export const UserProfileSchema = z.object({
     operator: IdentityConfigSchema,
     legal: IdentityConfigSchema,
     research: IdentityConfigSchema,
+    applied_ai_operator: IdentityConfigSchema.optional(),
   }).optional(),
 });
 
@@ -331,6 +332,12 @@ export const ConfigSchema = z.object({
     tier_2_ai_policy: OrgAdjacencyTierSchema,
     tier_3_tech_policy_civic: OrgAdjacencyTierSchema,
   }).optional(),
+  github_signal: z.array(z.object({
+    name: z.string(),
+    summary: z.string(),
+    identity_boosts: z.array(z.string()).default([]),
+    company_keywords: z.array(z.string()).default([]),
+  })).optional().default([]),
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

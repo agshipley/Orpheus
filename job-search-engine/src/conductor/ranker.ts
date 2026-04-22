@@ -1,13 +1,18 @@
 /**
  * Multi-identity job ranker.
  *
- * Evaluates every job against three professional identities (operator, legal,
- * research) independently and takes the MAX score as the overall match score.
- * The winning identity drives score, badge, and content-generator framing.
+ * Evaluates every job against four professional identities (operator, legal,
+ * research, applied_ai_operator) independently and takes the MAX score as the
+ * overall match score. The winning identity drives score, badge, and
+ * content-generator framing.
  *
  * Normalisation: score / MAX_RAW_SCORE (160) clamped to [0, 1].
  * Org-adjacency and legal-signal boosts can push past 160 — they clamp to 1.0,
  * so a tier-1 AI-safety org with a research title correctly shows 100%.
+ *
+ * github_signal boost: up to +20 per identity based on unique keyword hits
+ * against the identity's aggregated company_keywords bag. Scaled linearly:
+ * 1 hit = +5, 2 = +10, 3 = +15, 4+ = +20. Below targetTitles (+60) by design.
  */
 
 import type { JobListing, SearchQuery, UserProfile, IdentityConfig, IdentityKey, Config } from "../types.js";
@@ -28,8 +33,45 @@ export interface JobScore {
 }
 
 // The theoretical maximum for base signals: 60+40+30+15+10+5 = 160.
-// Org-adjacency (+60/50/40) and legal signals (+25) can exceed this — they clamp.
+// Org-adjacency (+60/50/40), legal signals (+25), and github_signal (+20) can
+// exceed this — they clamp at normalisation.
 export const MAX_RAW_SCORE = 160;
+
+// ─── github_signal boost ──────────────────────────────────────────
+
+type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+/**
+ * Compute the github_signal company-affinity boost for one identity.
+ * Returns points (0–20) and a reason string, or null if no boost.
+ */
+export function computeGithubSignalBoost(
+  job: JobListing,
+  identityKey: IdentityKey,
+  githubSignal: GithubSignalEntry[]
+): { pts: number; reason: string } | null {
+  if (!githubSignal || githubSignal.length === 0) return null;
+
+  // Aggregate unique keywords from all entries that boost this identity
+  const keywordBag = new Set<string>();
+  for (const entry of githubSignal) {
+    if (entry.identity_boosts.includes(identityKey)) {
+      for (const kw of entry.company_keywords) {
+        keywordBag.add(kw.toLowerCase());
+      }
+    }
+  }
+  if (keywordBag.size === 0) return null;
+
+  const haystack = `${job.company} ${job.description}`.toLowerCase();
+  const hits = [...keywordBag].filter((kw) => haystack.includes(kw));
+  if (hits.length === 0) return null;
+
+  // Linear scale: 1=+5, 2=+10, 3=+15, 4+=+20
+  const pts = Math.min(20, hits.length * 5);
+  const topHits = hits.slice(0, 3).join(", ");
+  return { pts, reason: `GitHub signal: ${topHits}${hits.length > 3 ? ` +${hits.length - 3} more` : ""} (+${pts})` };
+}
 
 // ─── Per-identity scorer ──────────────────────────────────────────
 
@@ -39,7 +81,8 @@ export function scoreForIdentity(
   identity: IdentityConfig,
   query: SearchQuery,
   orgAdjacency?: Config["org_adjacency"],
-  featureWeights?: FeatureWeights
+  featureWeights?: FeatureWeights,
+  githubSignal?: GithubSignalEntry[]
 ): IdentityScore {
   let score = 0;
   const reasons: string[] = [];
@@ -170,6 +213,16 @@ export function scoreForIdentity(
     }
   }
 
+  // ── github_signal company-affinity boost (+0..+20) ─────────────
+  if (githubSignal && githubSignal.length > 0) {
+    const boost = computeGithubSignalBoost(job, identityKey, githubSignal);
+    if (boost) {
+      score += boost.pts;
+      reasons.push(boost.reason);
+      console.log(`[ranker] job=${job.id} identity=${identityKey} base=${score - boost.pts} github_signal=+${boost.pts} final=${score}`);
+    }
+  }
+
   // ── score_weight multiplier (default 1.0 → no-op) ─────────────
   const weight = identity.score_weight ?? 1.0;
   if (weight !== 1.0) {
@@ -180,6 +233,17 @@ export function scoreForIdentity(
   return { score, reasons };
 }
 
+// ─── Empty identity fallback ──────────────────────────────────────
+
+const EMPTY_IDENTITY: IdentityConfig = {
+  target_titles: [],
+  positioning_guidance: "",
+  resume_emphasis: "",
+  cover_letter_emphasis: "",
+  key_credentials: [],
+  score_weight: 1.0,
+};
+
 // ─── Full job scorer ──────────────────────────────────────────────
 
 export function scoreJob(
@@ -187,7 +251,8 @@ export function scoreJob(
   query: SearchQuery,
   profile: UserProfile,
   orgAdjacency: Config["org_adjacency"],
-  identityWeights?: IdentityWeightsMap
+  identityWeights?: IdentityWeightsMap,
+  githubSignal?: GithubSignalEntry[]
 ): JobScore {
   const identities = profile.identities;
 
@@ -199,17 +264,33 @@ export function scoreJob(
       rawScore,
       matchedIdentity: "operator",
       identityScores: {
-        operator: { score: rawScore, reasons: ["Legacy single-profile scoring"] },
-        legal:    { score: 0, reasons: [] },
-        research: { score: 0, reasons: [] },
+        operator:           { score: rawScore, reasons: ["Legacy single-profile scoring"] },
+        legal:              { score: 0, reasons: [] },
+        research:           { score: 0, reasons: [] },
+        applied_ai_operator: { score: 0, reasons: [] },
       },
     };
   }
 
   const identityScores: Record<IdentityKey, IdentityScore> = {
-    operator: scoreForIdentity(job, "operator", identities.operator, query, orgAdjacency, identityWeights?.operator),
-    legal:    scoreForIdentity(job, "legal",    identities.legal,    query, orgAdjacency, identityWeights?.legal),
-    research: scoreForIdentity(job, "research", identities.research, query, orgAdjacency, identityWeights?.research),
+    operator: scoreForIdentity(
+      job, "operator", identities.operator, query, orgAdjacency,
+      identityWeights?.operator, githubSignal
+    ),
+    legal: scoreForIdentity(
+      job, "legal", identities.legal, query, orgAdjacency,
+      identityWeights?.legal, githubSignal
+    ),
+    research: scoreForIdentity(
+      job, "research", identities.research, query, orgAdjacency,
+      identityWeights?.research, githubSignal
+    ),
+    applied_ai_operator: scoreForIdentity(
+      job, "applied_ai_operator",
+      identities.applied_ai_operator ?? EMPTY_IDENTITY,
+      query, orgAdjacency,
+      identityWeights?.applied_ai_operator, githubSignal
+    ),
   };
 
   // MAX wins — take the highest-scoring identity

@@ -17,7 +17,21 @@ import type {
   ContentResult,
   ContentVariant,
   IdentityKey,
+  Config,
 } from "../types.js";
+
+type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+function buildGithubSignalContext(
+  identity: IdentityKey | undefined,
+  githubSignal?: GithubSignalEntry[]
+): string {
+  if (!identity || !githubSignal || githubSignal.length === 0) return "";
+  const relevant = githubSignal.filter((e) => e.identity_boosts.includes(identity));
+  if (relevant.length === 0) return "";
+  const list = relevant.map((e) => `- **${e.name}**: ${e.summary}`).join("\n");
+  return `\n\nRelevant personal projects to reference authentically when the role context warrants it. Do not force citations. Cite by name and the specific aspect that matches the role.\n${list}`;
+}
 
 type EmailType = "cold_outreach" | "follow_up" | "thank_you" | "networking";
 
@@ -46,7 +60,8 @@ export class EmailDrafter {
     job: JobListing,
     context: EmailContext,
     variants: number = 2,
-    identity?: IdentityKey
+    identity?: IdentityKey,
+    githubSignal?: GithubSignalEntry[]
   ): Promise<ContentResult> {
     const rootSpan = this.tracer.startTrace("content.email.draft");
     rootSpan.setAttributes({
@@ -66,7 +81,7 @@ export class EmailDrafter {
         const response = await this.client.messages.create({
           model: this.model,
           max_tokens: 1500,
-          system: this.getSystemPrompt(context.type, tone) + this.buildIdentityContext(profile, identity),
+          system: this.getSystemPrompt(context.type, tone) + this.buildIdentityContext(profile, identity) + buildGithubSignalContext(identity, githubSignal),
           messages: [
             {
               role: "user",

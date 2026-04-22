@@ -539,9 +539,10 @@ Schema:
     const profile = this.config.profile;
     const orgAdjacency = this.config.org_adjacency;
     const identityWeights = this.feedbackStore.getWeightsMap();
+    const githubSignal = this.config.github_signal ?? [];
 
     const scored = jobs.map((job) => {
-      const jobScore = scoreJob(job, query, profile, orgAdjacency, identityWeights);
+      const jobScore = scoreJob(job, query, profile, orgAdjacency, identityWeights, githubSignal);
       return { job, jobScore };
     });
 

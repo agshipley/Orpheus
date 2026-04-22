@@ -4,7 +4,7 @@ import * as api from "../api/client";
 import type { JobListing, ApplyResult, ContentVariant } from "../types";
 
 type GenType = "resume" | "cover_letter" | "email";
-type IdentityKey = "operator" | "legal" | "research";
+type IdentityKey = "operator" | "legal" | "research" | "applied_ai_operator";
 
 const GEN_BUTTONS: { type: GenType; label: string; loadingMsg: string }[] = [
   { type: "resume",       label: "Tailor Resume",      loadingMsg: "Tailoring resume…"         },
@@ -126,9 +126,10 @@ function VariantCard({
 // ─── Match Analysis ───────────────────────────────────────────────
 
 const IDENTITY_META: Record<IdentityKey, { label: string; color: string; badge: string }> = {
-  operator: { label: "Operator",  color: "text-blue-400",    badge: "OP"  },
-  legal:    { label: "Legal",     color: "text-amber-400",   badge: "LEG" },
-  research: { label: "Research",  color: "text-emerald-400", badge: "RES" },
+  operator:            { label: "Operator",     color: "text-blue-400",    badge: "OP"  },
+  legal:               { label: "Legal",        color: "text-amber-400",   badge: "LEG" },
+  research:            { label: "Research",     color: "text-emerald-400", badge: "RES" },
+  applied_ai_operator: { label: "Applied AI",   color: "text-teal-400",    badge: "AAI" },
 };
 
 function MatchAnalysis({ job }: { job: JobListing }) {
@@ -136,7 +137,7 @@ function MatchAnalysis({ job }: { job: JobListing }) {
   if (!job.matchedIdentity || !job.identityReasons) return null;
 
   const winning = job.matchedIdentity;
-  const others = (["operator", "legal", "research"] as IdentityKey[]).filter((k) => k !== winning);
+  const others = (["operator", "legal", "research", "applied_ai_operator"] as IdentityKey[]).filter((k) => k !== winning);
 
   return (
     <section>
@@ -316,6 +317,7 @@ export default function JobDetailPanel({
               <option value="operator">Generate as: Operator</option>
               <option value="legal">Generate as: Legal</option>
               <option value="research">Generate as: Research</option>
+              <option value="applied_ai_operator">Generate as: Applied AI</option>
             </select>
           )}
           {GEN_BUTTONS.map(({ type, label, loadingMsg }) => (

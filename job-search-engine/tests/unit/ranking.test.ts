@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   scoreForIdentity,
   scoreJob,
+  computeGithubSignalBoost,
   MAX_RAW_SCORE,
 } from "../../src/conductor/ranker.js";
 import type { JobListing, SearchQuery, UserProfile, IdentityConfig } from "../../src/types.js";
@@ -144,5 +145,100 @@ describe("scoreJob", () => {
     };
     const result = scoreJob(job, query, profile, orgAdjacency);
     expect(result.matchedIdentity).toBe("research");
+  });
+
+  it("applied_ai_operator wins when job title matches its target titles", () => {
+    const job = makeJob({ title: "Head of AI", description: "Lead AI strategy and delivery." });
+    const query = makeQuery({ title: "Head of AI" });
+    const profile = makeProfile({
+      identities: {
+        operator: makeIdentity({ target_titles: ["Chief of Staff"] }),
+        legal:    makeIdentity(),
+        research: makeIdentity({ target_titles: ["Research Lead"] }),
+        applied_ai_operator: makeIdentity({ target_titles: ["Head of AI"] }),
+      },
+    });
+    const result = scoreJob(job, query, profile, undefined);
+    expect(result.matchedIdentity).toBe("applied_ai_operator");
+    expect(result.score).toBeGreaterThanOrEqual(60 / MAX_RAW_SCORE);
+  });
+
+  it("MAX-not-sum: 4 identities with scores 40/60/30/50 → matchedIdentity = legal, score = 60/160", () => {
+    // Legal wins with 25 (credential signal) + 35 from skill match
+    // We construct scores by controlling title matches
+    const job = makeJob({
+      title: "General Counsel",
+      description: "jd required. transactional background expected.",
+    });
+    const query = makeQuery({ title: "General Counsel", skills: [] });
+    const profile = makeProfile({
+      identities: {
+        operator: makeIdentity({ target_titles: ["Chief of Staff"] }),        // no match → ~0
+        legal:    makeIdentity({ target_titles: ["General Counsel"] }),        // +60 title + +25 legal signals = 85
+        research: makeIdentity({ target_titles: ["Research Lead"] }),          // no match → ~0
+        applied_ai_operator: makeIdentity({ target_titles: ["Head of AI"] }), // no match → ~0
+      },
+    });
+    const result = scoreJob(job, query, profile, undefined);
+    expect(result.matchedIdentity).toBe("legal");
+    // legal score = 85, normalized = 85/160 ≈ 0.53 — clamped to [0,1]
+    expect(result.score).toBeGreaterThan(0.5);
+    expect(result.identityScores.operator.score).toBeLessThan(result.identityScores.legal.score);
+    expect(result.identityScores.research.score).toBeLessThan(result.identityScores.legal.score);
+    expect(result.identityScores.applied_ai_operator.score).toBeLessThan(result.identityScores.legal.score);
+  });
+});
+
+describe("computeGithubSignalBoost", () => {
+  const signal = [
+    {
+      name: "Orpheus",
+      summary: "AI job search engine on MCP.",
+      identity_boosts: ["applied_ai_operator", "operator"],
+      company_keywords: ["mcp", "agents", "observability"],
+    },
+    {
+      name: "NLSAFE",
+      summary: "Rust-based safety infra.",
+      identity_boosts: ["research", "operator"],
+      company_keywords: ["ai safety", "alignment", "rust"],
+    },
+  ];
+
+  it("returns +5 for exactly 1 keyword hit", () => {
+    const job = makeJob({ company: "Acme", description: "We use mcp architecture." });
+    const result = computeGithubSignalBoost(job, "applied_ai_operator", signal);
+    expect(result).not.toBeNull();
+    expect(result!.pts).toBe(5);
+  });
+
+  it("caps boost at +20 for 4+ keyword hits", () => {
+    const job = makeJob({
+      company: "Acme",
+      description: "We value mcp, agents, observability, and also ai safety across our work.",
+    });
+    // applied_ai_operator gets Orpheus keywords (mcp, agents, observability = 3 hits → +15)
+    // Note: ai safety belongs to NLSAFE which boosts [research, operator], not applied_ai_operator
+    const result = computeGithubSignalBoost(job, "applied_ai_operator", signal);
+    expect(result).not.toBeNull();
+    expect(result!.pts).toBe(15); // 3 hits from Orpheus entry only
+
+    // operator gets both entries: mcp+agents+observability + ai safety+alignment → 5 unique hits
+    const resultOp = computeGithubSignalBoost(job, "operator", signal);
+    expect(resultOp).not.toBeNull();
+    expect(resultOp!.pts).toBe(20); // 4+ hits → capped at 20
+  });
+
+  it("returns null and does not throw when githubSignal is empty", () => {
+    const job = makeJob({ description: "mcp agents observability" });
+    expect(() => computeGithubSignalBoost(job, "applied_ai_operator", [])).not.toThrow();
+    const result = computeGithubSignalBoost(job, "applied_ai_operator", []);
+    expect(result).toBeNull();
+  });
+
+  it("returns null when no keywords from the identity's entries match the job", () => {
+    const job = makeJob({ company: "Boring Corp", description: "Standard accounting firm." });
+    const result = computeGithubSignalBoost(job, "applied_ai_operator", signal);
+    expect(result).toBeNull();
   });
 });

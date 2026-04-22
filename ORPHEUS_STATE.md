@@ -32,7 +32,7 @@
 - **Model.** `claude-sonnet-4-6`
 - **Stack.** Node.js / TypeScript, Express backend, React + Vite + Tailwind frontend, `better-sqlite3`.
 - **Deploy.** Railway auto-deploys from `main`. SQLite on Railway volume at `/data` via `DATABASE_PATH=/data/orpheus.db`. Volume is required — without it every deploy wipes all saved jobs, feedback, tuned weights, and traces.
-- **Dual purpose.** (1) Functional job search for Andrew's actual target roles. (2) Portfolio piece demonstrating MCP architecture, parallel agent orchestration, three-identity ranking, observability, and behavioral feedback learning.
+- **Dual purpose.** (1) Functional job search for Andrew's actual target roles. (2) Portfolio piece demonstrating MCP architecture, parallel agent orchestration, four-identity ranking, github_signal company-affinity boost, observability, and behavioral feedback learning.
 
 ---
 
@@ -44,13 +44,14 @@
 - **Active agents.** HN (YCombinator Who's Hiring) and Jobicy.
 - **Deprecated agents (kept in code, unregistered).** WaaS (client-rendered, not worth headless scraping), Getro (401 auth-gated), Pallet (404).
 
-### Three-Identity Ranker (Phase 2.5, commit `3424f48`)
+### Four-Identity Ranker (Phase 2.5 → extended, commit `3424f48` + subsequent)
 
-Every job is scored against three identities independently, then **MAX** wins.
+Every job is scored against four identities independently, then **MAX** wins.
 
 - **OPERATOR** — Chief of Staff, Director of Ops, Founder's Associate, Business Operations, Head of Strategic Initiatives. Built on EeroQ CoS + Trace Machina Director of Ops + AGS Law partner track.
 - **LEGAL** — General Counsel, Head of Business Affairs, Corporate Development, VP Legal, Special Counsel. Built on AGS Law + Gunderson + EeroQ Special Counsel.
 - **RESEARCH** — Research Operations, Program Officer, Policy Fellow, Senior Fellow, Research Manager, CoS to Chief Scientist. Built on three peer-reviewed publications + Rhodes DPhil + Fulbright + Trace Machina ARIA work + NLSAFE.
+- **APPLIED_AI_OPERATOR** — Head of AI, Director of Applied AI, AI Program Lead, Applied AI Lead, VP AI, and equivalents. Built on five shipped production AI systems (first-agent, charlie, mrkt, NLSAFE, Orpheus). Positioned as "applied-AI operator who has shipped production systems for named clients." Targets non-AI-first companies where the AI operator layer is the value capture.
 
 Each identity has its own block in `archimedes.config.yaml` with `target_titles`, `positioning_guidance`, `resume_emphasis`, `cover_letter_emphasis`, and `key_credentials`.
 
@@ -64,7 +65,11 @@ Each identity has its own block in `archimedes.config.yaml` with `target_titles`
 
 **Scoring.** Normalized to `[0, 1]` against a fixed 160-point ceiling (absolute, not best-in-batch). A job shown as 100% actually hits the ceiling — not just "least bad of the batch."
 
-**UI exposure.** Search results show **OP / LEG / RES** badges per result (blue / amber / green). Detail panel has a **Match Analysis** section showing the winning identity's reasons expanded, other two identities collapsed. An **identity override dropdown** in the detail panel header lets the user force a different identity for content generation.
+**github_signal boost** (shipped). Top-level `github_signal` block in config — 6 hand-curated entries (NLSAFE, first-agent, charlie, mrkt, Orpheus, client-deployed AI systems). For each identity, after base scoring, add up to **+20 points** based on unique keyword hits in `job.company + job.description` against that identity's aggregated keyword bag. Linear scale: 1 hit = +5, 2 = +10, 3 = +15, 4+ = +20. Fails safe — absent block → no boost, no throw.
+
+**Content-generator injection.** github_signal entries filtered to the active identity are injected into ResumeTailor / CoverLetterGenerator / EmailDrafter prompts as "Relevant personal projects to reference authentically when the role context warrants it." Keywords are NOT passed; only `name + summary`.
+
+**UI exposure.** Search results show **OP / LEG / RES / AAI** badges per result (blue / amber / green / teal). Detail panel has a **Match Analysis** section showing the winning identity's reasons expanded, other identities collapsed. An **identity override dropdown** in the detail panel header lets the user force a different identity for content generation (all four options).
 
 ### Content Generators
 
@@ -80,8 +85,8 @@ Each identity has its own block in `archimedes.config.yaml` with `target_titles`
 
 ### Tests
 
-- 46 tests passing at Phase 2.5 commit.
-- Ranking tests in `tests/unit/ranking.test.ts` cover: operator-win, legal-win, research-win-tier-1-boost, research-win-tier-3-boost, low-score-engineering-role, MAX-not-sum behavior.
+- 52 tests passing.
+- Ranking tests in `tests/unit/ranking.test.ts` cover: operator-win, legal-win, research-win-tier-1-boost, research-win-tier-3-boost, low-score-engineering-role, MAX-not-sum behavior, applied_ai_operator-win (Head of AI), github_signal exact boost (+5 for 1 hit), github_signal ceiling (+20 for 4+ hits), github_signal graceful fallback (empty array → null, no throw), MAX-not-sum with 4 identities, null-returns for no-match jobs.
 
 ---
 
@@ -179,57 +184,25 @@ Adapted conceptually from Garry Tan's GBrain. **Reimplement natively in Orpheus'
 
 ## 5. Portfolio (public repos at `github.com/agshipley`)
 
-Five showable repos. Sixth (`CW_Actual`) exists but stays unpinned.
+Five showable repos, plus CW_Actual as sixth.
 
 1. **NLSAFE** (Rust, Apache 2.0). Verifiable build infrastructure for safety-critical AI systems. Three subprojects: `llvm_ir_analyzer` (static IR scanner for unsafe memory patterns), `mlir_audit_tool` (MLIR dialect-aware audit for dynamic ops and layout violations), `bep_to_slsa` (Bazel Build Event Protocol → SLSA provenance transformer). 14 commits. **Tier-1 research credential. Also operator-relevant.**
 
-2. **first-agent** (Python, Flask, Apache 2.0). Production AI lead-generation agent for Tre Borden /Co, deployed on Railway with SSE streaming. Includes a multi-city art-commissioning intelligence engine covering LA, NYC, SF with typology-primary scoring, owner-pattern matching from JSON config, percent-for-art ordinance matching, connector architecture for pluggable municipal data sources. 275 tests. Has a `PERMITS_PROJECT.md` product-strategy doc with competitive analysis (Dodge / ConstructConnect / ATTOM / Shovels.ai). **Tier-1 operator credential. Also research-relevant.**
+2. **first-agent** (Python, Flask, Apache 2.0). Production AI lead-generation agent for Tre Borden /Co, deployed on Railway with SSE streaming. Includes a multi-city art-commissioning intelligence engine covering LA, NYC, SF with typology-primary scoring, owner-pattern matching from JSON config, percent-for-art ordinance matching, connector architecture for pluggable municipal data sources. 275 tests. Has a `PERMITS_PROJECT.md` product-strategy doc with competitive analysis (Dodge / ConstructConnect / ATTOM / Shovels.ai). **Tier-1 applied_ai_operator + operator credential.**
 
-3. **mrkt** (Python). "Moneyball for transactional law" — empirical M&A research platform. **Tier-1 legal credential.** Repo contents not yet deeply read by Claude — to be reviewed before deeper portfolio integration.
+3. **mrkt** (Python). "Moneyball for transactional law" — empirical M&A research platform. 152-agreement MAUD corpus, four Anthropic tool_use schemas, 99.7% extraction success, 91–94% expert-label agreement, OLS with HC1 robust SEs. **Tier-1 legal + research credential.**
 
-4. **charlie** (Python). No public description yet. Repo contents not yet read. **Status: TBD** — paste URL or contents when ready for integration.
+4. **charlie** (Python). Autonomous multi-agent entertainment-industry intelligence system deployed on Railway for Liz Varner. Four agents: Ingestion, Analysis, Brief, Thesis. Per-client persistent context. **Tier-1 applied_ai_operator credential.**
 
-5. **Orpheus** (TypeScript). This project.
+5. **Orpheus** (TypeScript). This project. **Tier-1 applied_ai_operator + operator credential.**
+
+6. **CW_Actual** (HTML / vanilla JS, canvas-rendered). Single-file ~4,400-line park-management simulation adapted from George Saunders' *CivilWarLand in Bad Decline*. Deliberate one-file monolith: no build step, no framework, no dependencies. Data-driven content architecture (events, minor events, phase-2 events, daily actions, building interiors, tally verdicts, character visuals all as plain-object tables), hand-drawn sketchy-line rendering via seeded wobble primitives, four-checkpoint moral ledger with authored verdicts, two-phase game gate at day 31, in-browser hotspot authoring tool, named design principle ('Height to Fall From') governing compounding decay. Live at `cw-actual.vercel.app`. **Tier-2 craft and systems-design credential** — demonstrates runtime-architecture judgment, content-data separation, and documentation discipline.
 
 ### Public-facing fixes pending
 
-- Orpheus GitHub description currently says `"PD Tool"` → should say something like: "AI-powered personal job search engine on MCP architecture with multi-source agent orchestration, three-identity ranking, and observability."
+- Orpheus GitHub description currently says `"PD Tool"` → should say something like: "AI-powered personal job search engine on MCP architecture with multi-source agent orchestration, four-identity ranking, and observability."
 - first-agent GitHub description currently says `"Test agent, pipeline generation for Borden/Co"` → should say something like: "Production AI lead-generation system for Tre Borden /Co, plus an open-source art-commissioning intelligence engine covering LA, NYC, and SF."
-- Pin NLSAFE, first-agent, mrkt, Orpheus on the GitHub profile. Leave `CW_Actual` unpinned.
-
-### `github_signal` config block (proposed, pending decision)
-
-Hand-curated (not API-fetched) block in `archimedes.config.yaml` that feeds a **company-affinity boost** into each of the three identity scorers separately. Proposal:
-
-```yaml
-github_signal:
-  - name: NLSAFE
-    summary: "Verifiable build infrastructure for AI safety (Rust, LLVM IR, Bazel BEP → SLSA)"
-    identity_boosts: [research, operator]
-    company_keywords: [ai safety, alignment, interpretability, verifiable, provenance, build systems, infrastructure, rust]
-  - name: first-agent
-    summary: "Production AI lead-gen agent + permit intelligence engine, Tre Borden /Co"
-    identity_boosts: [operator, research]
-    company_keywords: [llm, agents, claude, mcp, production ai, data pipelines, socrata, municipal data]
-  - name: mrkt
-    summary: "Moneyball for transactional law"
-    identity_boosts: [legal]
-    company_keywords: [m&a, transactional, corporate law, venture, deals, fund formation]
-  - name: charlie
-    summary: "[TBD — need to read the repo]"
-    identity_boosts: []
-    company_keywords: []
-  - name: Orpheus
-    summary: "Self-search engine with three-identity ranking, MCP architecture, behavioral feedback loop"
-    identity_boosts: [operator, research]
-    company_keywords: [mcp, agents, observability, ranking, search]
-```
-
-**Ranking integration.** For each identity, after computing its base score, add up to **+20 points** for company-affinity matches in `job.company` and `job.description` against that identity's aggregated keyword bag from `github_signal` entries where `identity_boosts` contains that identity. Chosen to matter but not dominate `targetTitles` (+60).
-
-**Content-generation integration.** Pass the matching `github_signal` entries (filtered to the active identity) into ResumeTailor / CoverLetterGenerator / EmailDrafter prompts as "Relevant personal projects to reference authentically."
-
-**Infrastructure.** Config-only change. No new env vars. No API calls (summaries hand-curated). No LLM cost. Fails safe — if block is missing, ranker falls back to current behavior.
+- Pin NLSAFE, first-agent, charlie, mrkt, Orpheus, and CW_Actual on the GitHub profile (six slots — GitHub's maximum).
 
 ---
 
@@ -289,8 +262,7 @@ These are architectural characteristics of Orpheus as currently deployed. Not bu
 - [ ] Update first-agent GitHub description from "Test agent, pipeline generation for Borden/Co" to accurate positioning.
 - [ ] Pin NLSAFE, first-agent, mrkt, Orpheus on GitHub profile.
 - [ ] Read mrkt repo contents for deeper positioning.
-- [ ] Read charlie repo contents to decide inclusion.
-- [ ] Finalize `github_signal` block in config once charlie is resolved.
+- [ ] Pin NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual on the agshipley GitHub profile (six slots, GitHub max).
 
 ### Shipped-but-stale
 
@@ -303,3 +275,4 @@ These are architectural characteristics of Orpheus as currently deployed. Not bu
 ## 10. Change Log
 
 - **2026-04-21** — Initial canonical state file created. Captures everything through Phase 2.5 shipped (commit `3424f48`), three-identity ranker live, portfolio identified (NLSAFE replaces earlier "Achilles" placeholder), Railway volume discipline formalized, `github_signal` block proposed but not yet shipped.
+- **2026-04-21** — Fourth identity (`applied_ai_operator`) + `github_signal` block shipped. Six portfolio entries finalized (NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual). AAI badge (teal) added to UI. All content generators updated with filtered github_signal injection. 52 tests passing.
