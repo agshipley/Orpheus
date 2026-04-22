@@ -235,12 +235,29 @@ profile:
     hands-on software engineering experience — technical credibility is
     real (MCP, AI tooling, developer infrastructure literacy), but the
     strongest positioning is as a sophisticated operator with strong
-    AI/developer-tools literacy, not as a traditional engineer. The
-    combination of law, operations, grants, strategy, and advisory work
-    makes the profile especially strong for chief-of-staff, strategic
-    operations, investing-adjacent, and business-affairs-style roles.
-    The Rhodes, Fulbright, Yale Law, and Phi Beta Kappa credentials
-    signal intellectual horsepower without needing to belabor the point.
+    AI/developer-tools literacy, not as a traditional engineer.
+
+    The Rhodes Scholar credential is structural, not decorative. It is not
+    interchangeable with Yale Law as a prestige signal — it is a different
+    category of claim entirely. The Rhodes selection process is specifically
+    designed to identify people expected to be consequential in their domains,
+    evaluated at 21 or 22 by committees of senior people whose job is exactly
+    that judgment. A hiring committee that understands the credential reads it
+    as: "identified by a selection process designed to find people of judgment
+    and consequence, and is now here demonstrating the full arc." This changes
+    the starting position of every conversation at institutions that understand
+    it — foundations, policy organizations, frontier AI labs, senior roles in
+    government, law firm general counsel, media companies with intellectual
+    cultures. The Rhodes pre-licenses the evaluator register. An opening
+    that diagnoses the company's problem does not read as presumptuous for
+    this profile; it reads as calibrated. Content generators should default
+    to the evaluator voice rather than softening toward applicant hedging.
+
+    The DPhil in Experimental Psychology is the research credential — distinct
+    from the Rhodes. It is real doctoral empirical work across three peer-reviewed
+    publications with named collaborators (John T. Jost at NYU, William H. Dutton
+    at Oxford Internet Institute). The Rhodes got to Oxford; the DPhil is what
+    happened there. Both count and they count for different reasons.
 
   identities:
 
@@ -349,33 +366,47 @@ profile:
         - "Director of AI Policy"
         - "Head of AI Policy"
       positioning_guidance: >
-        Frame as a trained empirical social scientist who chose the operating
-        path over the academic one and now works at the intersection of
-        research-driven organizations, founders, and consequential decisions.
-        Three peer-reviewed publications across three domains: social identity
-        and prosocial behavior (Psychological Reports, 2008, sole author);
-        political engagement and televised debates (SSRN/Reuters Institute
-        volume, 2010, co-author with William Dutton at Oxford Internet
-        Institute); moral foundations and motivated social cognition (PLOS
-        ONE, 2020, co-author with John T. Jost at NYU). Rhodes + Fulbright
-        + doctoral work in experimental psychology at Oxford. The Trace
-        Machina ARIA Safeguarded AI grant work is direct evidence of research-
-        credentialed operating at the frontier of AI safety infrastructure.
+        The Rhodes is the structural load-bearing element for research-identity
+        applications, not a listed credential. Foundation hiring committees,
+        policy organizations, and senior research roles read it as: identified
+        at 21 by a selection process specifically designed to find people of
+        judgment and consequence, and now here demonstrating the full arc. The
+        DPhil output — three peer-reviewed publications across three domains
+        (social identity and prosocial behavior, Psychological Reports 2008,
+        sole author; political engagement and televised debates, Reuters
+        Institute volume 2010, co-author with William H. Dutton at Oxford
+        Internet Institute; moral foundations and motivated social cognition,
+        PLOS ONE 2020, co-author with John T. Jost at NYU) — and the Trace
+        Machina ARIA Safeguarded AI grant work complete the evidence set. This
+        is an unusually strong combination for program officer, senior fellow,
+        and research operations roles at foundations and policy organizations.
+        The legal and operating background is evidence of execution, not a
+        departure from research — frame it as "can ship in the world, not just
+        write about it." The Rhodes network is a warm-intro channel for a
+        specific set of high-value roles: foundation program officer pipelines,
+        policy organization fellowships, and senior research roles are
+        disproportionately staffed by people who understand what Rhodes means.
+        Use the network deliberately.
       resume_emphasis: >
         Lead with publications in the education/credentials section — these
         are the signal for research-adjacent hiring managers. Then the
         Trace Machina ARIA work (frames AI safety grant writing as actual
         research-adjacent operating). Then EeroQ and AGS Law as proof of
-        execution, not just theorizing. Rhodes, Fulbright, Yale Law all
-        prominent. Be explicit that you've worked at Oxford Internet
-        Institute and the Jost lab.
+        execution, not just theorizing. Rhodes and Fulbright prominent —
+        not as prestige items but as structural validators of the research
+        identity. Be explicit that you've co-authored with John Jost at NYU
+        and William Dutton at the Oxford Internet Institute.
       cover_letter_emphasis: >
-        Open with a specific intellectual touchpoint — a question the
-        organization is working on that connects to your research or
-        AI-infrastructure work. Cite the publications if the role description
-        signals that's the right register. Frame the legal and operating
-        experience as evidence you can ship in the world, not just write
-        about it.
+        Open with the specific intellectual problem the organization is working
+        on and your direct connection to it via research, grant work, or
+        AI-infrastructure background. The evaluator register is pre-licensed
+        here by the credential arc — lead with diagnosis of what they need,
+        not with why you're applying. Cite publications if the role description
+        signals that register. Frame the legal and operating track record as
+        proof of ability to execute, not as a pivot away from research. Do not
+        soften with applicant hedging. Close by naming what would make this
+        role worth the time — that framing reads as calibrated, not arrogant,
+        for this profile.
       key_credentials:
         - "Co-author with John T. Jost (NYU), PLOS ONE 2020"
         - "Co-author with William H. Dutton (Oxford Internet Institute), 2010"
@@ -535,6 +566,13 @@ org_adjacency:
       - AI Policy Institute
       - CAIDP
       - Centre for the Governance of AI
+      # Rhodes-dense policy institutions with active AI/tech programs
+      - Council on Foreign Relations
+      - Brookings Institution
+      - CSIS
+      - Carnegie Endowment for International Peace
+      - Aspen Institute
+      - Berggruen Institute
   tier_3_tech_policy_civic:
     boost: 40
     orgs:
@@ -555,6 +593,14 @@ org_adjacency:
       - Code for America
       - Protect Democracy
       - The GovLab
+      # Major foundations with AI governance / emerging tech programs
+      - MacArthur Foundation
+      - Mellon Foundation
+      - Carnegie Corporation of New York
+      - Rockefeller Foundation
+      - Atlantic Council
+      - New America
+      - William and Flora Hewlett Foundation
 
 github_signal:
   - name: NLSAFE
