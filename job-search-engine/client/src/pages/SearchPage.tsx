@@ -47,15 +47,20 @@ function IdentityBadge({ identity }: { identity?: "operator" | "legal" | "resear
 
 function SourceBadge({ source }: { source: string }) {
   const map: Record<string, string> = {
-    ycombinator: "YC",
-    linkedin: "LI",
-    indeed: "IN",
-    github: "GH",
-    waas: "WS",
-    jobicy: "JB",
-    getro: "GT",
-    pallet: "PL",
-    custom: "—",
+    ycombinator:          "YC",
+    linkedin:             "LI",
+    indeed:               "IN",
+    github:               "GH",
+    waas:                 "WS",
+    jobicy:               "JB",
+    getro:                "GT",
+    pallet:               "PL",
+    ai_first:             "AI",
+    vc_portfolio:         "VC",
+    operator_communities: "OP",
+    foundations_policy:   "FP",
+    legal_innovation:     "LG",
+    custom:               "—",
   };
   return (
     <span className="tag font-mono text-[10px] tracking-wider">

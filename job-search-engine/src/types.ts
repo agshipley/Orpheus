@@ -11,7 +11,7 @@ import { z } from "zod";
 
 export const JobListingSchema = z.object({
   id: z.string(),
-  source: z.enum(["linkedin", "indeed", "github", "ycombinator", "getro", "pallet", "waas", "jobicy", "custom"]),
+  source: z.enum(["linkedin", "indeed", "github", "ycombinator", "getro", "pallet", "waas", "jobicy", "custom", "vc_portfolio", "operator_communities", "foundations_policy", "ai_first", "legal_innovation"]),
   sourceId: z.string(),
   title: z.string(),
   company: z.string(),
@@ -152,7 +152,12 @@ export type AgentSource =
   | "pallet"
   | "waas"
   | "jobicy"
-  | "custom";
+  | "custom"
+  | "vc_portfolio"
+  | "operator_communities"
+  | "foundations_policy"
+  | "ai_first"
+  | "legal_innovation";
 
 export interface AgentConfig {
   source: AgentSource;

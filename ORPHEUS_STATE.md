@@ -41,8 +41,19 @@
 ### Backend
 
 - Express server with MCP server layer. Conductor orchestrates parallel agent fan-out via `p-limit`.
-- **Active agents.** HN (YCombinator Who's Hiring) and Jobicy.
-- **Deprecated agents (kept in code, unregistered).** WaaS (client-rendered, not worth headless scraping), Getro (401 auth-gated), Pallet (404).
+- **Active agents (6).** HN (YCombinator Who's Hiring), ai_first, vc_portfolio, operator_communities, foundations_policy, legal_innovation.
+- **Retired agents (kept in code, re-activatable by adding to `config.agents.sources`).** Jobicy (too generalist), WaaS (client-rendered), Getro (auth-gated; subsumed into vc_portfolio), Pallet (404; subsumed into operator_communities).
+
+  | Agent | Strategy | Sources |
+  |---|---|---|
+  | **HN** (ycombinator) | Firebase + Algolia public APIs | HN "Who's Hiring?" thread |
+  | **ai_first** | Greenhouse & Lever public APIs | Anthropic, OpenAI, Scale, Cohere, HF, Perplexity, Mistral, DeepMind, Character, Inflection |
+  | **vc_portfolio** | Getro API pattern | Sequoia, a16z, Benchmark, Founders Fund, Greylock, Accel, KP, Index |
+  | **operator_communities** | Pallet / Greenhouse | CoS Network, Operators Guild, On Deck, First Round Capital |
+  | **foundations_policy** | Greenhouse + cheerio | Open Philanthropy, Mozilla, Knight/Ford Foundations, RAND, CSET, GovAI |
+  | **legal_innovation** | Greenhouse + Lever + cheerio | Harvey, Ironclad, Everlaw, Relativity, Clio, Stripe, LawNext |
+
+  All agents fail open. 10s per-fetch timeout, 20s per-agent ceiling. 1-hour in-memory response cache per URL. Per-source failures are logged and skipped — healthy sources are never blocked by a failing one.
 
 ### Four-Identity Ranker (Phase 2.5 → extended, commit `3424f48` + subsequent)
 
@@ -264,6 +275,13 @@ These are architectural characteristics of Orpheus as currently deployed. Not bu
 - [ ] Read mrkt repo contents for deeper positioning.
 - [ ] Pin NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual on the agshipley GitHub profile (six slots, GitHub max).
 
+### Post-deploy source health audit
+
+- [ ] After the first 24 hours on Railway post-deploy, review per-source diagnostic logs. Any source returning 0 jobs consistently across multiple searches should be investigated:
+  - **0 jobs + no error log**: likely auth-gated (403) or API endpoint has changed. Update the slug/URL or disable.
+  - **0 jobs + error log**: network failure, SSL issue, or domain not found. Check Railway logs for the specific HTTP status.
+  - **Expected to fail initially**: vc_portfolio sources (Getro endpoints may be auth-gated), operator_communities (Pallet endpoints are inconsistent). These fail gracefully — HN and ai_first are the reliable baseline.
+
 ### Shipped-but-stale
 
 - [ ] Ship Phase 2.6 (saved jobs primitive) — prompt ready.
@@ -278,6 +296,7 @@ These are architectural characteristics of Orpheus as currently deployed. Not bu
 - **2026-04-21** — Fourth identity (`applied_ai_operator`) + `github_signal` block shipped. Six portfolio entries finalized (NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual). AAI badge (teal) added to UI. All content generators updated with filtered github_signal injection. 52 tests passing.
 - **2026-04-21** — CW_Actual reclassified as tier-2 craft/systems-design credential following substantive README update. Added to github_signal block with identity_boosts [applied_ai_operator, operator]. All six portfolio repos now slotted for GitHub profile pinning (GitHub max). "Leave CW_Actual unpinned" decision reversed.
 - **2026-04-21** — Asymmetry filter, compound-fit scoring, `/matches` primary view, evaluator posture in content generators, `POSITIONING.md` living artifact shipped. 62 tests passing. See Section 11.
+- **2026-04-21** — Source expansion shipped. Retired Jobicy (too generalist). Added five new agent families covering AI-first companies (Greenhouse/Lever APIs), VC portfolios (Getro pattern), operator communities (Pallet/Greenhouse), foundations/policy (Greenhouse + cheerio), and legal innovation (Greenhouse + Lever + cheerio). Total active agents: 6. Shared fetch_utils.ts: 1-hour in-memory response cache, 10s/20s timeout ceilings, Greenhouse/Lever/Getro shared parsers, title filters. 104 tests passing.
 
 ---
 

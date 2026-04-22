@@ -485,10 +485,16 @@ agents:
   concurrency: 5
   timeoutMs: 45000
   sources:
-    - jobicy
     - ycombinator
-    - getro
-    - pallet
+    - ai_first
+    - vc_portfolio
+    - operator_communities
+    - foundations_policy
+    - legal_innovation
+  # Retired sources (disabled but kept for re-enablement):
+  #   - jobicy          (too generalist — poor signal for operator/legal/research identities)
+  #   - getro           (auth-gated; subsumed into vc_portfolio direct-fetch)
+  #   - pallet          (404; subsumed into operator_communities direct-fetch)
 
 observability:
   traceSamplingRate: 1.0
