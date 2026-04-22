@@ -196,13 +196,13 @@ Five showable repos, plus CW_Actual as sixth.
 
 5. **Orpheus** (TypeScript). This project. **Tier-1 applied_ai_operator + operator credential.**
 
-6. **CW_Actual** (HTML / vanilla JS, canvas-rendered). Single-file ~4,400-line park-management simulation adapted from George Saunders' *CivilWarLand in Bad Decline*. Deliberate one-file monolith: no build step, no framework, no dependencies. Data-driven content architecture (events, minor events, phase-2 events, daily actions, building interiors, tally verdicts, character visuals all as plain-object tables), hand-drawn sketchy-line rendering via seeded wobble primitives, four-checkpoint moral ledger with authored verdicts, two-phase game gate at day 31, in-browser hotspot authoring tool, named design principle ('Height to Fall From') governing compounding decay. Live at `cw-actual.vercel.app`. **Tier-2 craft and systems-design credential** — demonstrates runtime-architecture judgment, content-data separation, and documentation discipline.
+6. **CW_Actual** (HTML / vanilla JS, canvas-rendered). Single-file ~4,400-line park-management simulation adapted from George Saunders' *CivilWarLand in Bad Decline*. Deliberate one-file monolith: no build step, no framework, no dependencies. Data-driven content architecture (events, minor events, phase-2 events, daily actions, building interiors, tally verdicts, character visuals all as plain-object tables), hand-drawn sketchy-line rendering via seeded wobble primitives, four-checkpoint moral ledger with authored Saunders-voice verdicts keyed by dominant category or total-score thresholds, two-phase game gate at day 31, in-browser hotspot authoring tool, named design principle ('Height to Fall From') governing compounding decay. Live at `cw-actual.vercel.app`. **Tier-2 craft and systems-design credential** — demonstrates runtime-architecture judgment, content-data separation, documentation discipline, and voice/craft fluency. Pinned on GitHub profile. Added to github_signal with identity_boosts [applied_ai_operator, operator].
 
 ### Public-facing fixes pending
 
 - Orpheus GitHub description currently says `"PD Tool"` → should say something like: "AI-powered personal job search engine on MCP architecture with multi-source agent orchestration, four-identity ranking, and observability."
 - first-agent GitHub description currently says `"Test agent, pipeline generation for Borden/Co"` → should say something like: "Production AI lead-generation system for Tre Borden /Co, plus an open-source art-commissioning intelligence engine covering LA, NYC, and SF."
-- Pin NLSAFE, first-agent, charlie, mrkt, Orpheus, and CW_Actual on the GitHub profile (six slots — GitHub's maximum).
+- Pin NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual on the GitHub profile (six slots — GitHub's maximum).
 
 ---
 
@@ -276,3 +276,4 @@ These are architectural characteristics of Orpheus as currently deployed. Not bu
 
 - **2026-04-21** — Initial canonical state file created. Captures everything through Phase 2.5 shipped (commit `3424f48`), three-identity ranker live, portfolio identified (NLSAFE replaces earlier "Achilles" placeholder), Railway volume discipline formalized, `github_signal` block proposed but not yet shipped.
 - **2026-04-21** — Fourth identity (`applied_ai_operator`) + `github_signal` block shipped. Six portfolio entries finalized (NLSAFE, first-agent, charlie, mrkt, Orpheus, CW_Actual). AAI badge (teal) added to UI. All content generators updated with filtered github_signal injection. 52 tests passing.
+- **2026-04-21** — CW_Actual reclassified as tier-2 craft/systems-design credential following substantive README update. Added to github_signal block with identity_boosts [applied_ai_operator, operator]. All six portfolio repos now slotted for GitHub profile pinning (GitHub max). "Leave CW_Actual unpinned" decision reversed.

@@ -659,6 +659,33 @@ github_signal:
       - developer tools
       - ai infrastructure
 
+  - name: CW_Actual
+    summary: "Single-file, canvas-rendered park-management simulation adapted from the George Saunders short story 'CivilWarLand in Bad Decline' — roughly 4,400 lines of embedded CSS, HTML, and JavaScript in one index.html with no build step, no framework, no dependencies. Data-driven content tables (events, minor events, phase-2 events, daily actions, building interiors, tally verdicts, character visuals), sketchy hand-drawn rendering via seeded wobble primitives, a four-checkpoint moral ledger evaluated at days 7/14/21/30 with authored voice-locked verdicts keyed by dominant category or total-score thresholds, two-phase game gate at day 31, in-browser hotspot authoring tool for interior rendering, and a named design principle ('Height to Fall From') governing compounding decay. Live at cw-actual.vercel.app."
+    identity_boosts: [applied_ai_operator, operator]
+    company_keywords:
+      - games
+      - gaming
+      - narrative design
+      - interactive fiction
+      - simulation
+      - creative tools
+      - authoring tools
+      - content tooling
+      - canvas
+      - rendering
+      - creative software
+      - media
+      - entertainment
+      - publishing
+      - story driven
+      - narrative ai
+      - voice driven content
+      - creative director
+      - studio tools
+      - founding engineer
+      - founder associate
+      - solo builder
+
   - name: client-deployed AI systems
     summary: "Two distinct production AI systems shipped for named clients across two verticals: first-agent for Tre Borden /Co (public-art and municipal-permit intelligence) and charlie for Liz Varner (entertainment-industry multi-agent intelligence). Pattern is rarer than either repo individually — applied-AI work for real clients outside the candidate's primary employer."
     identity_boosts: [applied_ai_operator, operator]
