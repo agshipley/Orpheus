@@ -1,3 +1,11 @@
+# Orpheus — Canonical Project State
+
+**Before doing anything in this session, read `ORPHEUS_STATE.md` in the repo root.** It is the single source of truth for the user, project, architecture, six-phase build plan, portfolio, infrastructure discipline, and standing risks. Anything in chat conversations or prior sessions that conflicts with `ORPHEUS_STATE.md` is stale — reconcile to the state file.
+
+Update `ORPHEUS_STATE.md` whenever a phase ships, architecture changes, portfolio changes, or a new standing risk is identified. Do not let it drift.
+
+---
+
 # Orpheus — Claude Code Project Guide
 
 ## Project Overview
