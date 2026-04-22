@@ -18,6 +18,7 @@ import { getTracer, getMetrics, getDecisionLog } from "../observability/index.js
 import { createAgentPool } from "../agents/index.js";
 import type { BaseAgent } from "../agents/base_agent.js";
 import { scoreJob, computeGithubSignalBoost, flagAsymmetry } from "./ranker.js";
+import { isExcludedEngineeringRole } from "../agents/fetch_utils.js";
 import { JobStore } from "../storage/job_store.js";
 import { FeedbackStore } from "../storage/feedback_store.js";
 import type {
@@ -569,7 +570,11 @@ Schema:
     const identityWeights = this.feedbackStore.getWeightsMap();
     const githubSignal = this.config.github_signal ?? [];
 
-    const scored = jobs.map((job) => {
+    // Global IC engineering filter — runs after agent-level filtering to catch
+    // any sources (e.g. ycombinator) that don't apply it themselves.
+    const relevant = jobs.filter((j) => !isExcludedEngineeringRole(j.title));
+
+    const scored = relevant.map((job) => {
       const jobScore = scoreJob(job, query, profile, orgAdjacency, identityWeights, githubSignal);
       const boost = computeGithubSignalBoost(job, jobScore.matchedIdentity, githubSignal);
       const asymmetry_fit = flagAsymmetry(job, jobScore.compound_fit, boost?.pts ?? 0);
@@ -620,6 +625,8 @@ Schema:
       const identityWeights = this.feedbackStore.getWeightsMap();
       const githubSignal = this.config.github_signal ?? [];
 
+      const relevant = deduped.filter((j) => !isExcludedEngineeringRole(j.title));
+
       type Candidate = {
         job: JobListing;
         jobScore: ReturnType<typeof scoreJob>;
@@ -627,7 +634,7 @@ Schema:
         githubBoostPts: number;
       };
 
-      const candidates: Candidate[] = deduped.map((job) => {
+      const candidates: Candidate[] = relevant.map((job) => {
         const jobScore = scoreJob(job, TONIGHT_QUERY, profile, orgAdjacency, identityWeights, githubSignal);
         const boost = computeGithubSignalBoost(job, jobScore.matchedIdentity, githubSignal);
         const asymmetry_fit = flagAsymmetry(job, jobScore.compound_fit, boost?.pts ?? 0);

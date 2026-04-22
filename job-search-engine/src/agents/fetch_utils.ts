@@ -55,10 +55,19 @@ export async function fetchJsonCached<T>(url: string, timeoutMs = 10_000): Promi
 
 // ─── Title filters ────────────────────────────────────────────────
 
+// IC engineering roles to suppress globally. Leadership / PM / EM titles intentionally
+// excluded from this pattern — "Engineering Manager", "Director of Engineering",
+// "Product Manager", "Technical Program Manager" all pass through.
 const ENG_EXCLUDE_RX =
-  /\b(software engineer|swe\b|frontend engineer|back.?end engineer|full.?stack engineer|ml engineer|machine learning engineer|data scientist|devops engineer|sre\b|platform engineer|principal engineer|staff engineer|infrastructure engineer|site reliability engineer|member of technical staff|research scientist|research engineer)\b/i;
+  /\b(software engineer|swe\b|sde\b|frontend engineer|back.?end engineer|full.?stack engineer|ml engineer|machine learning engineer|ai engineer|data engineer|data scientist|devops engineer|sre\b|platform engineer|principal engineer|staff engineer|infrastructure engineer|site reliability engineer|member of technical staff|research scientist|research engineer|security engineer|cloud engineer|network engineer|ios engineer|android engineer|mobile engineer|qa engineer|test engineer|embedded engineer|firmware engineer|hardware engineer|systems engineer)\b/i;
+
+// Leadership/PM roles that must always pass through even if the broader title
+// happens to contain an engineering word (e.g. "Technical Engineering Lead").
+const ENG_LEADERSHIP_RX =
+  /\b(engineering manager|director of engineering|vp.*engineer|head of engineer|product manager|program manager|technical program manager|tpm\b|chief.*engineer|cto\b)\b/i;
 
 export function isExcludedEngineeringRole(title: string): boolean {
+  if (ENG_LEADERSHIP_RX.test(title)) return false;
   return ENG_EXCLUDE_RX.test(title);
 }
 
