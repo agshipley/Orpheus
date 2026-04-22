@@ -53,6 +53,7 @@ const AGENT_REGISTRY: Record<
   vc_portfolio:           VcPortfolioAgent,
   operator_communities:   OperatorCommunitiesAgent,
   foundations_policy:     FoundationsPolicyAgent,
+  package:                GitHubAgent, // Placeholder — "package" source never enters the agent pool; source=package jobs are synthetic.
   legal_innovation:       LegalInnovationAgent,
 };
 

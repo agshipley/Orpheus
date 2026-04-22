@@ -242,6 +242,115 @@ export interface TonightResponse {
   meta: TonightMeta;
 }
 
+// ─── Package types ────────────────────────────────────────────────
+
+export interface PackageRequest {
+  company: string;
+  title: string;
+  description: string;
+  location?: string;
+  remote?: boolean;
+}
+
+export interface StructuralRead {
+  company_problem: string;
+  identity_rationale: string;
+  asymmetry_summary: string;
+  should_pursue_signal: "strong" | "moderate" | "weak";
+  signal_rationale: string;
+}
+
+export interface ResumeHeader {
+  name: string;
+  email: string;
+  phone?: string;
+  location?: string;
+  linkedin?: string;
+  github?: string;
+  website?: string;
+}
+
+export interface ResumeExperience {
+  role: string;
+  company: string;
+  location?: string;
+  dates: string;
+  bullets: string[];
+}
+
+export interface ResumeEducation {
+  degree: string;
+  institution: string;
+  dates: string;
+  honors?: string[];
+}
+
+export interface ResumeProject {
+  name: string;
+  summary: string;
+  bullets: string[];
+}
+
+export interface ResumePublication {
+  citation: string;
+}
+
+export interface ResumeStructured {
+  header: ResumeHeader;
+  summary: string;
+  experience: ResumeExperience[];
+  education: ResumeEducation[];
+  selected_projects?: ResumeProject[];
+  publications?: ResumePublication[];
+  skills?: string[];
+}
+
+export interface CoverLetterRecipient {
+  name?: string;
+  title?: string;
+  company: string;
+  address?: string;
+}
+
+export interface CoverLetterSender {
+  name: string;
+  email: string;
+  location?: string;
+}
+
+export interface CoverLetterStructured {
+  date: string;
+  recipient?: CoverLetterRecipient;
+  sender: CoverLetterSender;
+  salutation: string;
+  paragraphs: string[];
+  closing: string;
+  signature: string;
+}
+
+export interface IdentityScoreDetail {
+  score: number;
+  reasons: string[];
+}
+
+export interface PackageScoringResult {
+  identity_scores: Record<string, IdentityScoreDetail>;
+  winning_identity: string;
+  compound_fit: number;
+  asymmetry_fit: "high" | "none";
+  github_signal_hits: string[];
+  score_reasons: string[];
+}
+
+export interface PackageResponse {
+  synthetic_job: JobListing;
+  scoring: PackageScoringResult;
+  structural_read: StructuralRead;
+  resume: { structured: ResumeStructured; html: string; error?: string };
+  cover_letter: { structured: CoverLetterStructured; html: string; error?: string };
+  outreach_email: { subject: string; body: string; error?: string };
+}
+
 // ─── Tracker / Kanban types ───────────────────────────────────────
 
 export type KanbanStatus = "saved" | "applied" | "interview" | "offer" | "rejected";

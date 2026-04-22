@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 const NAV = [
   { to: "/tonight",     label: "Tonight",     icon: TonightIcon },
+  { to: "/package",     label: "Package",     icon: PackageIcon },
   { to: "/search",      label: "Search",      icon: SearchIcon },
   { to: "/matches",     label: "Matches",     icon: MatchIcon  },
   { to: "/tracker",     label: "Tracker",     icon: KanbanIcon },
@@ -50,6 +51,16 @@ export default function Layout({ children }: { children: ReactNode }) {
 }
 
 // ─── Inline icons ─────────────────────────────────────────────────
+
+function PackageIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <rect x="2" y="5" width="12" height="9" rx="1" />
+      <path d="M5 5V4a3 3 0 016 0v1" strokeLinecap="round" />
+      <path d="M8 8v3" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 function TonightIcon({ className }: { className?: string }) {
   return (

@@ -42,6 +42,7 @@ import {
 import { regeneratePositioningHandler, getPositioningHandler } from "./routes/positioning.js";
 import { matchesHandler } from "./routes/matches.js";
 import { tonightHandler } from "./routes/tonight.js";
+import { packageHandler, downloadResumeHandler, downloadCoverLetterHandler } from "./routes/package.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
@@ -99,6 +100,10 @@ app.get("/api/matches", matchesHandler);
 app.get("/api/tonight", tonightHandler);
 app.get("/api/positioning", getPositioningHandler);
 app.post("/api/positioning/regenerate", regeneratePositioningHandler);
+
+app.post("/api/package", packageHandler);
+app.post("/api/package/download/resume", downloadResumeHandler);
+app.post("/api/package/download/cover-letter", downloadCoverLetterHandler);
 
 // ─── Health check ─────────────────────────────────────────────────
 

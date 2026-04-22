@@ -11,6 +11,10 @@ import type {
   FeedbackStatus,
   SubmitFeedbackResponse,
   TonightResponse,
+  PackageRequest,
+  PackageResponse,
+  ResumeStructured,
+  CoverLetterStructured,
 } from "../types";
 
 const BASE = "/api";
@@ -146,3 +150,44 @@ export const getPositioning = (): Promise<{ content: string }> =>
 
 export const regeneratePositioning = (): Promise<{ ok: boolean; length: number }> =>
   req("/positioning/regenerate", json({}));
+
+// ─── Package ──────────────────────────────────────────────────────
+
+export const generatePackage = (body: PackageRequest): Promise<PackageResponse> =>
+  req("/package", json(body));
+
+export const downloadResumeDocx = async (structured: ResumeStructured, company: string): Promise<void> => {
+  const res = await fetch("/api/package/download/resume", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ structured, company }),
+  });
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Andrew_Shipley_Resume_${company.replace(/[^a-zA-Z0-9]/g, "_")}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
+
+export const downloadCoverLetterDocx = async (structured: CoverLetterStructured, company: string): Promise<void> => {
+  const res = await fetch("/api/package/download/cover-letter", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ structured, company }),
+  });
+  if (!res.ok) throw new Error(`Download failed: ${res.status}`);
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Andrew_Shipley_Cover_Letter_${company.replace(/[^a-zA-Z0-9]/g, "_")}.docx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+};
