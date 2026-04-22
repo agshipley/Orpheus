@@ -9,6 +9,7 @@ import {
   generatePackageEmail,
 } from "../../content/package_generators.js";
 import { renderResumeDocx, renderCoverLetterDocx, sanitizeFilename } from "../../content/docx_render.js";
+import { extractJobMetadata } from "../../content/extract_job_metadata.js";
 import type {
   JobListing,
   SearchQuery,
@@ -61,29 +62,37 @@ export async function packageHandler(req: Request, res: Response): Promise<void>
     remote?: unknown;
   };
 
-  if (typeof company !== "string" || company.trim().length === 0 || company.length > 200) {
-    res.status(400).json({ error: "company is required and must be <= 200 characters." });
-    return;
-  }
-  if (typeof title !== "string" || title.trim().length === 0 || title.length > 200) {
-    res.status(400).json({ error: "title is required and must be <= 200 characters." });
-    return;
-  }
   if (typeof description !== "string" || description.length < 100 || description.length > 20000) {
     res.status(400).json({ error: "description must be between 100 and 20000 characters." });
     return;
   }
+  const userCompany = typeof company === "string" && company.trim() ? company.trim() : null;
+  const userTitle   = typeof title   === "string" && title.trim()   ? title.trim()   : null;
 
   const config = loadConfig();
+
+  // Auto-extract company/title from the description when the user left them blank.
+  let resolvedCompany = userCompany ?? "";
+  let resolvedTitle   = userTitle ?? "";
+  let resolvedLocation = typeof location === "string" && location.trim() ? location.trim() : "";
+  let resolvedRemote   = remote === true;
+
+  if (!userCompany || !userTitle) {
+    const extracted = await extractJobMetadata(description);
+    if (!userCompany)  resolvedCompany  = extracted.company;
+    if (!userTitle)    resolvedTitle    = extracted.title;
+    if (!resolvedLocation && extracted.location) resolvedLocation = extracted.location;
+    if (!resolvedRemote && extracted.remote)     resolvedRemote   = extracted.remote;
+  }
 
   const syntheticJob: JobListing = {
     id: `package_${nanoid(10)}`,
     source: "package",
     sourceId: nanoid(8),
-    title: title.trim(),
-    company: company.trim(),
-    location: typeof location === "string" && location.trim() ? location.trim() : "Not specified",
-    remote: remote === true,
+    title: resolvedTitle,
+    company: resolvedCompany,
+    location: resolvedLocation || "Not specified",
+    remote: resolvedRemote,
     description,
     requirements: [],
     url: "https://orpheus.local/package",
@@ -92,8 +101,8 @@ export async function packageHandler(req: Request, res: Response): Promise<void>
   };
 
   const syntheticQuery: SearchQuery = {
-    raw: title,
-    title: title,
+    raw: resolvedTitle,
+    title: resolvedTitle,
     skills: [],
     industries: [],
     excludeCompanies: [],

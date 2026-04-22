@@ -220,7 +220,7 @@ export default function PackagePage() {
           value={form.description}
           onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
           rows={12}
-          placeholder="Paste the full job posting — title, company, description, requirements. More detail produces a better package."
+          placeholder="Paste the full job posting — title, company, description, requirements. Company and role title will be auto-detected if you leave them blank below."
           className="w-full rounded-lg border border-border-subtle bg-surface px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600 resize-y font-mono"
         />
         <div className="grid grid-cols-2 gap-3">
@@ -228,14 +228,14 @@ export default function PackagePage() {
             type="text"
             value={form.company}
             onChange={(e) => setForm((f) => ({ ...f, company: e.target.value }))}
-            placeholder="Company *"
+            placeholder="Company (optional — auto-detected)"
             className="rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
           />
           <input
             type="text"
             value={form.title}
             onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-            placeholder="Role title *"
+            placeholder="Role title (optional — auto-detected)"
             className="rounded-lg border border-border-subtle bg-surface px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-zinc-600"
           />
         </div>
@@ -260,7 +260,7 @@ export default function PackagePage() {
 
         <button
           onClick={handleGenerate}
-          disabled={loading || !form.company.trim() || !form.title.trim() || form.description.length < 100}
+          disabled={loading || form.description.length < 100}
           className="w-full rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-border-subtle text-sm font-medium text-zinc-100 py-2.5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {loading ? "Generating package... (~20s)" : "Generate Package"}
