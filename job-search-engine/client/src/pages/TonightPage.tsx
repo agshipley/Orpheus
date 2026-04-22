@@ -278,7 +278,7 @@ export default function TonightPage() {
             </span>
             <span className="text-zinc-700 text-[11px]">·</span>
             <span className="text-[11px] text-zinc-600">
-              {data.meta.picks.length ?? 0} curated
+              {data.picks.length} curated
             </span>
             <span className="text-zinc-700 text-[11px]">·</span>
             <span className="text-[11px] text-zinc-600">

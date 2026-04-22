@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import * as api from "../api/client";
-import type { JobListing, SearchResult, FeedbackStatus, RankerWeight } from "../types";
+import type { JobListing, SearchResult, FeedbackStatus, RankerWeight, IdentityKey } from "../types";
 
 // ─── Rating labels ────────────────────────────────────────────────
 
@@ -275,7 +275,7 @@ function JobCard({
 // ─── Main page ────────────────────────────────────────────────────
 
 export default function TunePage() {
-  const [identity, setIdentity] = useState<"operator" | "legal" | "research">("operator");
+  const [identity, setIdentity] = useState<IdentityKey>("operator");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [jobs, setJobs] = useState<JobListing[]>([]);

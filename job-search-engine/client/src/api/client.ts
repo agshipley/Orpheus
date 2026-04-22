@@ -98,7 +98,7 @@ export const saveGeneratedContent = (params: {
 
 // ─── Feedback / Tuning ────────────────────────────────────────────
 
-export const searchWide = (identity: "operator" | "legal" | "research"): Promise<SearchResult> =>
+export const searchWide = (identity: "operator" | "legal" | "research" | "applied_ai_operator"): Promise<SearchResult> =>
   req("/search/wide", json({ identity }));
 
 export const submitFeedback = (params: {

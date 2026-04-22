@@ -1,10 +1,9 @@
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
 import * as api from "../api/client";
-import type { JobListing, ApplyResult, ContentVariant } from "../types";
+import type { JobListing, ApplyResult, ContentVariant, IdentityKey } from "../types";
 
 type GenType = "resume" | "cover_letter" | "email";
-type IdentityKey = "operator" | "legal" | "research" | "applied_ai_operator";
 
 const GEN_BUTTONS: { type: GenType; label: string; loadingMsg: string }[] = [
   { type: "resume",       label: "Tailor Resume",      loadingMsg: "Tailoring resume…"         },
