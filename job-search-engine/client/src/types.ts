@@ -223,6 +223,7 @@ export interface TonightPick {
   identityScores: Record<string, number>;
   github_signal_hits: string[];
   why_paragraph: string;
+  reader_frame?: ReaderFrame | null;
 }
 
 export interface TonightMeta {
@@ -240,6 +241,20 @@ export interface TonightMeta {
 export interface TonightResponse {
   picks: TonightPick[];
   meta: TonightMeta;
+}
+
+// ─── Reader-frame types ───────────────────────────────────────────
+
+export type MotiveFrame = "profit" | "thesis" | "market" | "mission" | "craft" | "service";
+
+export interface ReaderFrame {
+  primary: MotiveFrame;
+  secondary?: MotiveFrame | null;
+  reader_role_guess: string;
+  reader_concerns: string[];
+  reader_vocabulary: string[];
+  frame_rationale: string;
+  anti_vocabulary: string[];
 }
 
 // ─── Package types ────────────────────────────────────────────────
@@ -345,6 +360,7 @@ export interface PackageScoringResult {
 export interface PackageResponse {
   synthetic_job: JobListing;
   scoring: PackageScoringResult;
+  reader_frame?: ReaderFrame;
   structural_read: StructuralRead;
   resume: { structured: ResumeStructured; html: string; error?: string };
   cover_letter: { structured: CoverLetterStructured; html: string; error?: string };

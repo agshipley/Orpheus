@@ -13,13 +13,17 @@ import type { Request, Response } from "express";
 import Anthropic from "@anthropic-ai/sdk";
 import { Conductor } from "../../conductor/conductor.js";
 import type { TonightPick } from "../../conductor/conductor.js";
+import { inferReaderFrame } from "../../content/reader_frame.js";
+import type { ReaderFrame } from "../../content/reader_frame.js";
 import { loadConfig } from "../config.js";
 
 const SYSTEM_PROMPT = `You are writing a 2-3 sentence "why this role specifically" paragraph for Andrew Shipley, who evaluates job opportunities from an evaluator's position — not an applicant's.
 
 Andrew's arc: Rhodes Scholar / Oxford DPhil Experimental Psychology (3 peer-reviewed publications, named collaborators John T. Jost NYU and William H. Dutton OII) / Yale JD / Gunderson Dettmer VC law / co-founding partner boutique startup law firm (100+ startups, $250M+ transactions) / Chief of Staff to quantum computing CEO (promoted from outside counsel) / Director of Operations Series A AI infrastructure (10x ARR, SOC II, ARIA safety grant) / five shipped production AI systems as a hobby including an autonomous multi-agent intelligence system.
 
-The Rhodes pre-licenses the evaluator register. Write from "this organization has a named gap that this specific combination resolves" — not "he is qualified for this." Name the structural fit: which identity wins and why, what the company gap is, why this profile combination is rare. Specific beats generic. Do not hedge. 2-3 sentences maximum. No bullet points.`;
+The Rhodes pre-licenses the evaluator register. Write from "this organization has a named gap that this specific combination resolves" — not "he is qualified for this." Name the structural fit: which identity wins and why, what the company gap is, why this profile combination is rare. Specific beats generic. Do not hedge. 2-3 sentences maximum. No bullet points.
+
+A reader-frame may be provided. If so, use the reader's vocabulary — not generic evaluator vocabulary. A profit-motive reader runs AUM and process velocity questions; a mission-motive reader runs outcome and stewardship questions; a thesis-motive reader runs deal flow and portfolio construction questions. Match the register to the frame. If no frame is provided, default to market-motive register.`;
 
 function buildFallbackParagraph(pick: TonightPick): string {
   const job = pick.job;
@@ -46,7 +50,8 @@ function buildFallbackParagraph(pick: TonightPick): string {
 async function generateWhyParagraph(
   client: Anthropic,
   model: string,
-  pick: TonightPick
+  pick: TonightPick,
+  frame?: ReaderFrame
 ): Promise<string> {
   const { job, identityScores } = pick;
   const descSnippet = job.description.slice(0, 500).replace(/\s+/g, " ");
@@ -62,6 +67,16 @@ async function generateWhyParagraph(
     asymmetry_fit: job.asymmetry_fit ?? "none",
     score_reasons: job.identityReasons?.[job.matchedIdentity ?? "operator"] ?? [],
     github_signal_hits: pick.github_signal_hits,
+    reader_frame: frame
+      ? {
+          primary: frame.primary,
+          secondary: frame.secondary ?? null,
+          reader_role_guess: frame.reader_role_guess,
+          reader_concerns: frame.reader_concerns,
+          reader_vocabulary: frame.reader_vocabulary,
+          anti_vocabulary: frame.anti_vocabulary,
+        }
+      : null,
   });
 
   const response = await client.messages.create({
@@ -89,13 +104,20 @@ export async function tonightHandler(_req: Request, res: Response): Promise<void
 
     const enrichedPicks = await Promise.all(
       picks.map(async (pick) => {
+        const frame = await inferReaderFrame({
+          company: pick.job.company,
+          title: pick.job.title,
+          description: pick.job.description,
+          config,
+        }).catch(() => undefined);
+
         let why_paragraph: string;
         try {
-          why_paragraph = await generateWhyParagraph(client, model, pick);
+          why_paragraph = await generateWhyParagraph(client, model, pick, frame);
         } catch {
           why_paragraph = buildFallbackParagraph(pick);
         }
-        return { ...pick, why_paragraph };
+        return { ...pick, why_paragraph, reader_frame: frame ?? null };
       })
     );
 

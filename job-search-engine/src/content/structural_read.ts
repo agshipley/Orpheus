@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import type { JobListing, StructuralRead, Config } from "../types.js";
 import type { JobScore } from "../conductor/ranker.js";
+import type { ReaderFrame } from "./reader_frame.js";
 
 function readPositioningContext(): string {
   const path = join(process.cwd(), "POSITIONING.md");
@@ -12,19 +13,22 @@ function readPositioningContext(): string {
   return content;
 }
 
-const SYSTEM_PROMPT = `You are reading a job posting on behalf of Andrew Shipley and producing a diagnostic evaluator read — not an enthusiastic pitch, not a cautious warning. Andrew's arc: Rhodes Scholar / Oxford DPhil Experimental Psychology (3 peer-reviewed publications, named collaborators John T. Jost NYU and William H. Dutton OII) / Yale JD / Gunderson Dettmer VC law / co-founding partner boutique startup law firm (100+ startups, $250M+ transactions) / Chief of Staff to quantum computing CEO (promoted from outside counsel) / Director of Operations Series A AI infrastructure (10x ARR, SOC II, ARIA safety grant) / five shipped production AI systems as a hobby including two deployed for named clients.
+const SYSTEM_PROMPT = `You are producing a diagnostic evaluator read on a job posting for Andrew Shipley. The reader-frame for this role has already been inferred and is provided as context. Your diagnostic must be written in terms that make sense for that reader-frame — do not describe a mission-motive organization's hiring problem in market-motive terms, and do not describe a profit-motive organization's hiring problem in mission-motive terms.
 
-Andrew evaluates roles from an evaluator's position, not an applicant's. Your read should:
-1. Name what the company is actually hiring for — the underlying capability gap, not the title.
-2. Explain which of the four identities (operator, legal, research, applied_ai_operator) best addresses the gap and why.
-3. State the asymmetry clearly: is this a role where this profile is the unlock, or a role where Andrew is one of many qualified candidates, or a role where the profile is a poor fit for specific reasons.
-4. Give a single should_pursue_signal: strong, moderate, or weak — and briefly say why.
+Andrew's arc: Rhodes Scholar / Oxford DPhil Experimental Psychology (3 peer-reviewed publications, named collaborators John T. Jost NYU and William H. Dutton OII) / Yale JD / Gunderson Dettmer VC law / co-founding partner boutique startup law firm (100+ startups, $250M+ transactions) / Chief of Staff to quantum computing CEO (promoted from outside counsel) / Director of Operations Series A AI infrastructure (10x ARR, SOC II, ARIA safety grant) / five shipped production AI systems as a hobby including two deployed for named clients.
 
-Be direct. Do not hedge. Do not flatter. If the role is a poor fit, say so and why. If the role is a strong fit, say so and why. The goal is accurate decision support, not motivation.
+Name:
+1. What this organization is actually trying to accomplish (in their frame's vocabulary)
+2. The specific capability gap this role is designed to close (in their frame's vocabulary)
+3. Whether Andrew's profile addresses that gap directly, partially, or poorly — and why
+4. The asymmetry read: is this a role where his profile is the unlock, one-of-many, or a miscategorization given his seniority/trajectory
+5. A should_pursue_signal: strong, moderate, or weak — with one sentence of rationale
 
-Respond ONLY with valid JSON matching this exact shape (no markdown, no fences, no commentary):
+Do not default to evaluator-posture vocabulary. Do not hedge. The goal is accurate decision support written in the reader's own terms.
+
+Respond ONLY with valid JSON (no markdown, no fences, no commentary):
 {
-  "company_problem": "string (2-3 sentences)",
+  "company_problem": "string (2-3 sentences in reader's vocabulary)",
   "identity_rationale": "string (2-3 sentences)",
   "asymmetry_summary": "string (2-3 sentences)",
   "should_pursue_signal": "strong" | "moderate" | "weak",
@@ -42,7 +46,8 @@ const FALLBACK: StructuralRead = {
 export async function generateStructuralRead(
   job: JobListing,
   scoring: JobScore,
-  config: Config
+  config: Config,
+  frame?: ReaderFrame
 ): Promise<StructuralRead> {
   const client = new Anthropic();
   const model = config.content.model ?? "claude-sonnet-4-6";
@@ -63,6 +68,7 @@ export async function generateStructuralRead(
       compound_fit: scoring.compound_fit,
       identity_scores: identityScoresSummary,
     },
+    reader_frame: frame ?? null,
     positioning_guidance: positioningGuidance.slice(0, 2000),
   });
 

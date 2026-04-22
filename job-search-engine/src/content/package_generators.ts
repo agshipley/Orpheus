@@ -9,8 +9,11 @@ import type {
   ResumeStructured,
   CoverLetterStructured,
 } from "../types.js";
+import type { ReaderFrame } from "./reader_frame.js";
 
 type GithubSignalEntry = NonNullable<Config["github_signal"]>[number];
+
+const NO_HALLUCINATION = `Do not invent facts. Every company name, counterparty, number, date, and achievement you reference must appear explicitly in the profile, portfolio, or prior work materials provided as context. If you cannot verify a fact against the source materials, do not include it. Prefer specificity grounded in source over impressive-sounding embellishment. If the source says "research universities," do not write "Fortune 500 counterpart." If the source gives no specific number, do not invent one.`;
 
 function readPositioningContext(): string {
   const path = join(process.cwd(), "POSITIONING.md");
@@ -41,14 +44,29 @@ function buildIdentityContext(profile: UserProfile, identity?: IdentityKey): str
   return lines.join("\n\n");
 }
 
+function frameContext(frame?: ReaderFrame): string {
+  if (!frame) return "";
+  const lines = [
+    `READER FRAME: ${frame.primary}${frame.secondary ? ` (secondary: ${frame.secondary})` : ""}`,
+    `Likely reader: ${frame.reader_role_guess}`,
+    `Reader concerns:\n${frame.reader_concerns.map((c) => `  - ${c}`).join("\n")}`,
+    `Reader vocabulary (use these terms naturally): ${frame.reader_vocabulary.join(", ")}`,
+    `Anti-vocabulary (do not use — signals category error): ${frame.anti_vocabulary.join(", ")}`,
+    `Frame rationale: ${frame.frame_rationale}`,
+  ];
+  return lines.join("\n");
+}
+
 // ─── Resume ───────────────────────────────────────────────────────
 
 const RESUME_SYSTEM = `You are generating a structured resume for Andrew Shipley, tailored to a specific role. Output ONLY valid JSON — no markdown, no fences, no commentary.
 
+${NO_HALLUCINATION}
+
 CANDIDATE POSTURE — NON-NEGOTIABLE:
 Andrew is evaluating whether this role is worth his time, not applying for it. Write from that posture.
 - Open the summary with his operating shape and the problem type he solves
-- Cite shipped systems by name (first-agent, charlie, mrkt, NLSAFE, Orpheus) when relevant
+- Cite shipped systems by name (first-agent, charlie, mrkt, NLSAFE, Orpheus) when relevant and verifiable from source materials
 - Use declarative framing: "ships production AI systems," "deployed for named clients"
 - Never use: "excited to apply," "passionate about," "results-driven"
 
@@ -98,7 +116,8 @@ export async function generatePackageResume(
   job: JobListing,
   profile: UserProfile,
   config: Config,
-  identity: IdentityKey | undefined
+  identity: IdentityKey | undefined,
+  frame?: ReaderFrame
 ): Promise<{ structured: ResumeStructured; html: string }> {
   const client = new Anthropic();
   const model = config.content.model ?? "claude-sonnet-4-6";
@@ -106,12 +125,14 @@ export async function generatePackageResume(
   const githubCtx = buildGithubSignalContext(identity, config.github_signal ?? []);
   const identityCtx = buildIdentityContext(profile, identity);
   const positioningCtx = readPositioningContext();
+  const frameCtx = frameContext(frame);
 
   const systemFull = [
     RESUME_SYSTEM,
     positioningCtx ? `\nPOSITIONING CONTEXT:\n${positioningCtx.slice(0, 2000)}` : "",
     identityCtx ? `\n\n${identityCtx}` : "",
-    githubCtx ? `\n\nRelevant portfolio projects (cite authentically when role context warrants):\n${githubCtx}` : "",
+    frameCtx ? `\n\nREADER FRAME CONTEXT (tailor emphasis to this reader's concerns):\n${frameCtx}` : "",
+    githubCtx ? `\n\nRelevant portfolio projects (cite authentically when role context warrants, using exact language from source):\n${githubCtx}` : "",
     profile.voice?.avoidPhrases?.length
       ? `\n\nNEVER USE: ${profile.voice.avoidPhrases.join(", ")}`
       : "",
@@ -167,30 +188,30 @@ ${(profile.projects ?? []).map((p) => `${p.name}: ${p.description}`).join("\n")}
 
 // ─── Cover Letter ─────────────────────────────────────────────────
 
-const COVER_LETTER_SYSTEM = `You are generating a structured cover letter for Andrew Shipley in evaluator register. Output ONLY valid JSON — no markdown, no fences, no commentary.
+const COVER_LETTER_SYSTEM = `You are writing a cover letter for Andrew Shipley. The reader-frame for this role has been inferred and is provided as context. Every substantive sentence in this letter must connect to one of the reader's stated concerns, stated in the reader's own vocabulary.
 
-CANDIDATE POSTURE — NON-NEGOTIABLE:
-- Open with a diagnosis of the company's likely problem or capability gap, not a personal introduction
-- Cite the closest portfolio project by name in the first paragraph
-- Use declarative framing: "the shape of this role is," "the capability gap here reads as"
-- Never use: "excited to apply," "would love to," "grateful for the opportunity," "I believe I would be"
-- Middle paragraphs should cite portfolio entries relevant to the winning identity
-- Close by naming what would make this role worth Andrew's time
+${NO_HALLUCINATION}
 
-Output this exact JSON shape:
+Hard rules:
+1. Do not use any term from the anti_vocabulary list. Those terms signal category error for this reader-frame.
+2. Do not write diagnosis paragraphs that have the rhythm of insight without naming something specific the organization actually does. Real diagnosis names a specific thing this organization does that creates the specific problem the role addresses.
+3. Do not describe Andrew's posture, approach, or what would make the role worth his commitment. Answer the reader's concerns.
+4. Every paragraph answers one of the reader's concerns directly, with evidence, in their vocabulary. If a paragraph does neither, cut it.
+
+Structure:
+- Opening: Name the specific concern the reader is most likely running, in their vocabulary, and state Andrew's answer to it.
+- Middle paragraphs (1-2): Evidence. Specific prior work that demonstrates Andrew has produced the outcome the reader wants, under conditions comparable to theirs. Cite portfolio projects by name when directly relevant and only using language from source materials.
+- Close: What the reader gets in the first ninety days if they hire him. Concrete, not aspirational.
+
+The letter is short. Four paragraphs, not six. Readers are busy. Length without substance is worse than brevity.
+
+Andrew's arc is in the profile and positioning materials. Use it for evidence, not for self-description. The reader does not want to read about Andrew. The reader wants to know whether Andrew produces the outcome they need.
+
+Output ONLY valid JSON — no markdown, no fences, no commentary:
 {
   "date": "Month DD, YYYY",
-  "recipient": {
-    "name": "string or omit",
-    "title": "string or omit",
-    "company": "string",
-    "address": "string or omit"
-  },
-  "sender": {
-    "name": "string",
-    "email": "string",
-    "location": "string or omit"
-  },
+  "recipient": { "name": "string or omit", "title": "string or omit", "company": "string", "address": "string or omit" },
+  "sender": { "name": "string", "email": "string", "location": "string or omit" },
   "salutation": "Dear [Name/Hiring Team],",
   "paragraphs": ["paragraph text", "..."],
   "closing": "Sincerely,",
@@ -201,7 +222,8 @@ export async function generatePackageCoverLetter(
   job: JobListing,
   profile: UserProfile,
   config: Config,
-  identity: IdentityKey | undefined
+  identity: IdentityKey | undefined,
+  frame?: ReaderFrame
 ): Promise<{ structured: CoverLetterStructured; html: string }> {
   const client = new Anthropic();
   const model = config.content.model ?? "claude-sonnet-4-6";
@@ -218,12 +240,14 @@ export async function generatePackageCoverLetter(
     return lines.join("\n\n");
   })();
   const positioningCtx = readPositioningContext();
+  const frameCtx = frameContext(frame);
 
   const systemFull = [
     COVER_LETTER_SYSTEM,
     positioningCtx ? `\nPOSITIONING CONTEXT:\n${positioningCtx.slice(0, 2000)}` : "",
     identityCtx ? `\n\n${identityCtx}` : "",
-    githubCtx ? `\n\nPortfolio projects to cite authentically:\n${githubCtx}` : "",
+    frameCtx ? `\n\nREADER FRAME — BINDING CONTEXT (write every sentence in the reader's vocabulary, answer their concerns):\n${frameCtx}` : "",
+    githubCtx ? `\n\nPortfolio projects (cite by exact name only when directly relevant to reader's specific concerns):\n${githubCtx}` : "",
     profile.voice?.avoidPhrases?.length
       ? `\n\nNEVER USE: ${profile.voice.avoidPhrases.join(", ")}`
       : "",
@@ -242,7 +266,8 @@ Name: ${profile.name}
 Email: ${profile.email ?? ""}
 Location: ${profile.location ?? ""}
 Most recent role: ${profile.experience[0]?.title ?? ""} at ${profile.experience[0]?.company ?? ""}
-Key achievements: ${profile.experience.slice(0, 2).flatMap((e) => e.highlights.slice(0, 2)).join("; ")}`;
+Key achievements: ${profile.experience.slice(0, 2).flatMap((e) => e.highlights.slice(0, 2)).join("; ")}
+Summary: ${profile.summary ?? ""}`;
 
   const response = await client.messages.create({
     model,
@@ -265,35 +290,36 @@ Key achievements: ${profile.experience.slice(0, 2).flatMap((e) => e.highlights.s
 
 // ─── Outreach Email ───────────────────────────────────────────────
 
-const EMAIL_SYSTEM = `You are generating a cold outreach email for Andrew Shipley. Output ONLY valid JSON — no markdown, no fences, no commentary.
+const EMAIL_SYSTEM = `You are writing a cold outreach email for Andrew Shipley. The reader-frame for this role has been inferred and is provided as context. The email is 4-6 sentences, direct, assumes the reader is busy.
 
-Requirements:
-- 4-8 sentences total in the body
-- Direct. Assumes the reader is busy.
-- Names the role, names the reason the profile is relevant, offers to talk, signs off
-- Evaluator register but softer than a cover letter — this is a human-to-human note
-- Subject: short, specific, not generic. "Re: [Role] — brief note" is the right register
-- Never use: "excited," "passionate," "would love to," "I am writing to express"
-- Do NOT use "I hope this email finds you well"
+${NO_HALLUCINATION}
 
-Output this exact JSON shape:
-{ "subject": "short specific subject line", "body": "4-8 sentence email body" }`;
+Hard rules: no invented facts, no anti-vocabulary terms from the reader frame, no template-diagnosis phrases, no self-description. Every sentence answers a reader concern in the reader's vocabulary.
+
+The email is human, not formal. It names the role, names the specific reason Andrew's profile is relevant to the reader's actual concerns (not to the posting's bullet points), offers a next step (a short call, a materials review), and signs off. No "I am excited" or "I am passionate." No "I believe my background makes me uniquely qualified."
+
+Subject line must be specific. "Interested in your opening" is generic. "Re: [Role] — quick note" is acceptable. "Re: [Role] — [one specific thing relevant to this reader's concerns]" is better.
+
+Output ONLY valid JSON: { "subject": "string", "body": "string" }. No markdown, no fences.`;
 
 export async function generatePackageEmail(
   job: JobListing,
   profile: UserProfile,
   config: Config,
-  identity: IdentityKey | undefined
+  identity: IdentityKey | undefined,
+  frame?: ReaderFrame
 ): Promise<{ subject: string; body: string }> {
   const client = new Anthropic();
   const model = config.content.model ?? "claude-sonnet-4-6";
 
   const githubCtx = buildGithubSignalContext(identity, config.github_signal ?? []);
   const positioningCtx = readPositioningContext();
+  const frameCtx = frameContext(frame);
 
   const systemFull = [
     EMAIL_SYSTEM,
     positioningCtx ? `\nPOSITIONING CONTEXT:\n${positioningCtx.slice(0, 1000)}` : "",
+    frameCtx ? `\n\nREADER FRAME — BINDING CONTEXT:\n${frameCtx}` : "",
     githubCtx ? `\n\nRelevant portfolio projects:\n${githubCtx}` : "",
   ].join("");
 

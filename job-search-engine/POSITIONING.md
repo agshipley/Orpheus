@@ -84,3 +84,53 @@ Applying below the right seniority level is the main anti-pattern. The profile r
 The Rhodes network is a practical warm-intro channel that the current system treats as zero signal. Program officer pipelines at major foundations, senior fellow searches, and research operations roles are disproportionately staffed by people who understand the credential and who can provide warm intros or contextual reads. Using the network deliberately is different from credential-dropping in applications.
 
 The thrilling moment — the role worth taking — is the one where a company or organization has a problem they cannot easily define, a hiring committee sophisticated enough to read the full arc, and a mandate wide enough that the profile is the unlock rather than one of many candidates. The asymmetry filter in Orpheus is designed to find these. The evaluator voice in the content generators is designed to write for them.
+
+<!-- READER-FRAME TAXONOMY — preserved across regenerations. Edit freely. -->
+
+## Reader-frame calibration
+
+Every piece of content Orpheus generates is read by someone running a specific set of concerns in their head. Those concerns differ meaningfully by organization type. A letter that answers the wrong set of concerns — even if well-written — reads as a category error. The content generators must identify the reader-frame before writing and write in the reader's own vocabulary.
+
+The taxonomy is descriptive, not normative. A profit-motive reader is not less legitimate than a mission-motive reader. The generator's job is to match the register to the reader, not to impose a default register across all readers.
+
+### Frames
+
+**Profit-motive.** Hedge funds, trading firms, private equity, proprietary trading, family offices operating as investment vehicles. Reader runs money and time questions nakedly. AUM, returns, process velocity, IR pipeline, reputation to LPs, bandwidth of the principal. Vocabulary: capital committed, deal closed, pipeline converted, operational leverage. A letter in mission language reads as noise. Do not use "passion," "purpose," or "mission" — they disqualify.
+
+**Thesis-motive.** Venture capital, growth equity, corporate VC, some strategic investors. Reader runs money questions wearing a thesis costume. Deal flow, winning competitive processes, portfolio velocity, fund-level narrative to LPs, thesis coherence. Vocabulary: conviction, wedge, asymmetric bet, portfolio construction, founder quality. A letter that strips out the thesis vocabulary misreads the register. A letter that is all thesis and no economics also misreads it — the thesis is a costume for the money question, not a replacement.
+
+**Market-motive.** Operating companies across stages, most startups, commercial software, law firms as businesses, agencies, services businesses. Reader runs revenue and cost questions through a P&L frame. Customer acquisition, retention, margin, unit economics, operational leverage, competitive position, hiring leverage. Vocabulary: growth, efficiency, runway, burn, conversion, expansion. Closer to profit-motive than thesis-motive but framed in business-operations terms rather than investment terms.
+
+**Mission-motive.** Foundations, policy organizations, advocacy groups, think tanks with named missions, some academic research institutions. Reader runs outcome and legitimacy questions. Program quality, grantee success, intellectual contribution, field-building, institutional trust, the organization's theory of change. Money is instrumental here, not the thing. Vocabulary: outcomes, evidence, field, grantees, program, theory of change, stewardship. A letter in market or profit language is actively offensive — it signals the candidate does not understand what the organization is for.
+
+**Craft-motive.** Universities, presses, museums, editorial institutions, research organizations whose purpose is the work itself. Reader runs quality and reputation questions. Work that would not otherwise exist, standards that would not otherwise be held, the institution's reputation in its field, intellectual continuity. Adjacent to mission but narrower — the motive is the craft, not the outcome. Vocabulary: standards, judgment, field, scholarship, editorial, program, rigor. A letter that describes impact in market terms misses the register entirely.
+
+**Service-motive.** Direct-service nonprofits, clinics, community organizations, some government agencies. Reader runs capacity and effectiveness questions. People served, quality of service, staff sustainability, donor relationships as enabling infrastructure. Vocabulary: clients served, capacity, sustainability, community, program delivery, outcomes (in a different sense than mission-motive — here outcomes are for specific people, not for fields).
+
+### Overlays
+
+A single organization can sit across multiple frames. A large foundation runs mission-motive for its program side and profit-motive for its endowment management. A law firm runs market-motive at the partnership level and craft-motive in its associates' work. A policy think tank runs mission-motive publicly and thesis-motive when pitching donors. An AI lab runs thesis-motive for hiring technical founders, market-motive for hiring GTM staff, and mission-motive for hiring policy and safety staff.
+
+When a role sits across overlays, identify the primary frame — the one the hiring reader most likely runs — and write to that, with secondary acknowledgment of the other only where it is genuinely load-bearing. Do not split the difference. Readers can tell when a letter was written for a different frame and translated.
+
+### Inference signals
+
+Read the organization's public footprint and the posting itself. Useful signals:
+- Is money the explicit product (funds, returns, deals) or an enabling condition (programs, grantees)?
+- Does the posting use market vocabulary (growth, revenue, customers) or mission vocabulary (outcomes, fields, grantees) or craft vocabulary (standards, scholarship, editorial)?
+- Who is the hiring reader likely to be — a founder, a managing partner, a CEO, a program officer, a department chair, an executive director? Their role constrains their vocabulary.
+- What does the organization publicly claim to exist for? The claim is not the whole truth but it is part of the register the reader will use.
+
+### Anti-patterns
+
+Do not default to evaluator-posture vocabulary if the reader's frame is different. Evaluator posture is about the writer's relationship to the opportunity, not about what the reader wants. Both can be true at once. A letter can be in evaluator posture AND answer profit-motive questions directly. The evaluator posture is not the register.
+
+Do not hedge across frames. If unsure which frame, pick one and commit. A letter that hedges reads as neither.
+
+Do not import mission language into profit-motive letters. "Passion for markets" is worse than saying nothing.
+
+Do not import market language into mission-motive letters. "Scaling impact" is how a market reader describes mission work; a mission reader writes "deepening the work."
+
+Do not import thesis language into profit-motive letters. Thesis vocabulary in a hedge fund letter reads as VC-coded and therefore out-of-category.
+
+<!-- END READER-FRAME TAXONOMY -->

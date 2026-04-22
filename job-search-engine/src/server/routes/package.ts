@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import { loadConfig } from "../config.js";
 import { scoreJob, flagAsymmetry, computeGithubSignalBoost } from "../../conductor/ranker.js";
 import { generateStructuralRead } from "../../content/structural_read.js";
+import { inferReaderFrame } from "../../content/reader_frame.js";
 import {
   generatePackageResume,
   generatePackageCoverLetter,
@@ -149,10 +150,17 @@ export async function packageHandler(req: Request, res: Response): Promise<void>
 
   const identity = jobScore.matchedIdentity;
 
-  // Step 2: Structural read (single Claude call, must succeed)
+  // Step 2: Reader-frame inference + structural read (reader frame runs first, then both feed downstream)
+  const frame = await inferReaderFrame({
+    company: resolvedCompany,
+    title: resolvedTitle,
+    description,
+    config,
+  });
+
   let structuralRead;
   try {
-    structuralRead = await generateStructuralRead(syntheticJob, jobScore, config);
+    structuralRead = await generateStructuralRead(syntheticJob, jobScore, config, frame);
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     res.status(500).json({ error: "Structural read generation failed", detail });
@@ -165,9 +173,9 @@ export async function packageHandler(req: Request, res: Response): Promise<void>
   type EmailResult = { subject: string; body: string };
 
   const [resumeResult, coverLetterResult, emailResult] = await Promise.allSettled([
-    generatePackageResume(syntheticJob, config.profile, config, identity),
-    generatePackageCoverLetter(syntheticJob, config.profile, config, identity),
-    generatePackageEmail(syntheticJob, config.profile, config, identity),
+    generatePackageResume(syntheticJob, config.profile, config, identity, frame),
+    generatePackageCoverLetter(syntheticJob, config.profile, config, identity, frame),
+    generatePackageEmail(syntheticJob, config.profile, config, identity, frame),
   ]);
 
   const resumeOut = resumeResult.status === "fulfilled"
@@ -183,6 +191,7 @@ export async function packageHandler(req: Request, res: Response): Promise<void>
   res.json({
     synthetic_job: syntheticJob,
     scoring,
+    reader_frame: frame,
     structural_read: structuralRead,
     resume: resumeOut ?? { error: resumeResult.status === "rejected" ? (resumeResult.reason as Error).message : "Failed" },
     cover_letter: coverLetterOut ?? { error: coverLetterResult.status === "rejected" ? (coverLetterResult.reason as Error).message : "Failed" },

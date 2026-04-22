@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import * as api from "../api/client";
-import type { PackageResponse } from "../types";
+import type { PackageResponse, ReaderFrame, MotiveFrame } from "../types";
 
 // ─── Identity meta (shared with TonightPage) ──────────────────────
 
@@ -55,6 +55,91 @@ function SignalPill({ signal }: { signal: "strong" | "moderate" | "weak" }) {
     <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold font-mono tracking-wider border ${styles[signal]}`}>
       {signal}
     </span>
+  );
+}
+
+// ─── Reader-frame display ─────────────────────────────────────────
+
+const FRAME_COLORS: Record<MotiveFrame, { pill: string; dot: string }> = {
+  profit:  { pill: "bg-rose-950/40 text-rose-400 border-rose-800",     dot: "bg-rose-400"   },
+  thesis:  { pill: "bg-violet-950/40 text-violet-400 border-violet-800", dot: "bg-violet-400" },
+  market:  { pill: "bg-blue-950/40 text-blue-400 border-blue-800",     dot: "bg-blue-400"   },
+  mission: { pill: "bg-emerald-950/40 text-emerald-400 border-emerald-800", dot: "bg-emerald-400" },
+  craft:   { pill: "bg-amber-950/40 text-amber-400 border-amber-800",   dot: "bg-amber-400"  },
+  service: { pill: "bg-teal-950/40 text-teal-400 border-teal-800",     dot: "bg-teal-400"   },
+};
+
+function FramePill({ frame }: { frame: MotiveFrame }) {
+  const c = FRAME_COLORS[frame];
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold font-mono tracking-wider border ${c.pill}`}>
+      {frame}
+    </span>
+  );
+}
+
+function ReaderFrameSection({ frame }: { frame: ReaderFrame }) {
+  const [vocabOpen, setVocabOpen] = useState(false);
+
+  return (
+    <Section title="Reader Frame">
+      <div className="space-y-3">
+        {/* Primary + secondary frame pills + reader role */}
+        <div className="flex flex-wrap items-center gap-2">
+          <FramePill frame={frame.primary} />
+          {frame.secondary && <FramePill frame={frame.secondary} />}
+          <span className="text-[11px] text-zinc-500 font-mono">{frame.reader_role_guess}</span>
+        </div>
+
+        {/* Rationale */}
+        <p className="text-[12px] text-zinc-400 leading-relaxed">{frame.frame_rationale}</p>
+
+        {/* Reader concerns */}
+        <div>
+          <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1.5">Running concerns</div>
+          <ul className="space-y-0.5">
+            {frame.reader_concerns.map((c, i) => (
+              <li key={i} className="text-[12px] text-zinc-400 flex items-start gap-1.5">
+                <span className={`mt-1.5 shrink-0 w-1 h-1 rounded-full ${FRAME_COLORS[frame.primary].dot}`} />
+                {c}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* Vocabulary / anti-vocab toggle */}
+        {(frame.reader_vocabulary.length > 0 || frame.anti_vocabulary.length > 0) && (
+          <div>
+            <button
+              onClick={() => setVocabOpen((v) => !v)}
+              className="text-[10px] text-zinc-600 hover:text-zinc-400 transition-colors"
+            >
+              {vocabOpen ? "▲ hide vocabulary" : "▼ show vocabulary"}
+            </button>
+            {vocabOpen && (
+              <div className="mt-2 grid grid-cols-2 gap-3">
+                <div>
+                  <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Use</div>
+                  <div className="flex flex-wrap gap-1">
+                    {frame.reader_vocabulary.map((w, i) => (
+                      <span key={i} className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800">{w}</span>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1">Avoid</div>
+                  <div className="flex flex-wrap gap-1">
+                    {frame.anti_vocabulary.map((w, i) => (
+                      <span key={i} className="inline-flex px-1.5 py-0.5 rounded text-[10px] font-mono text-red-400/70 bg-red-950/20 border border-red-900/30">{w}</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </Section>
   );
 }
 
@@ -199,6 +284,7 @@ export default function PackagePage() {
 
   const sr = result?.structural_read;
   const scoring = result?.scoring;
+  const readerFrame = result?.reader_frame;
   const resume = result?.resume;
   const cl = result?.cover_letter;
   const email = result?.outreach_email;
@@ -321,7 +407,10 @@ export default function PackagePage() {
             )}
           </Section>
 
-          {/* Section 2: Identity Scoring */}
+          {/* Section 2: Reader Frame */}
+          {readerFrame && <ReaderFrameSection frame={readerFrame} />}
+
+          {/* Section 3: Identity Scoring */}
           {scoring && (
             <Section title="Identity Scoring">
               <ScoreBars scores={scoring.identity_scores} />
@@ -337,7 +426,7 @@ export default function PackagePage() {
             </Section>
           )}
 
-          {/* Section 3: Resume */}
+          {/* Section 4: Resume */}
           <Section
             title="Resume"
             action={
@@ -359,7 +448,7 @@ export default function PackagePage() {
             ) : null}
           </Section>
 
-          {/* Section 4: Cover Letter */}
+          {/* Section 5: Cover Letter */}
           <Section
             title="Cover Letter"
             action={
@@ -381,7 +470,7 @@ export default function PackagePage() {
             ) : null}
           </Section>
 
-          {/* Section 5: Outreach Email */}
+          {/* Section 6: Outreach Email */}
           <Section
             title="Outreach Email"
             action={
@@ -406,7 +495,7 @@ export default function PackagePage() {
             ) : null}
           </Section>
 
-          {/* Section 6: Actions */}
+          {/* Section 7: Actions */}
           <div className="flex items-center gap-3 pt-2">
             <button
               disabled
