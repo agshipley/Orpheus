@@ -10,6 +10,7 @@ import type {
   CostEntry,
   FeedbackStatus,
   SubmitFeedbackResponse,
+  TonightResponse,
 } from "../types";
 
 const BASE = "/api";
@@ -132,6 +133,11 @@ export const getProfile = (): Promise<{
 
 export const getMatches = (): Promise<{ jobs: JobListing[]; count: number }> =>
   req("/matches");
+
+// ─── Tonight ──────────────────────────────────────────────────────
+
+export const getTonight = (): Promise<TonightResponse> =>
+  req("/tonight");
 
 // ─── Positioning ──────────────────────────────────────────────────
 

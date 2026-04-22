@@ -51,6 +51,24 @@ export interface SearchResult {
   };
 }
 
+export interface TonightPick {
+  job: JobListing;
+  identityScores: Record<string, number>;
+  github_signal_hits: string[];
+}
+
+export interface TonightResult {
+  picks: TonightPick[];
+  stats: {
+    rawResults: number;
+    afterDedup: number;
+    agentsQueried: number;
+    agentsSucceeded: number;
+    durationMs: number;
+  };
+  mode: "curated" | "best_available" | "empty";
+}
+
 // Preset wide-search query map: identity key → SearchQuery
 const WIDE_QUERIES: Record<string, SearchQuery> = {
   operator: {
@@ -570,6 +588,124 @@ Schema:
       compound_fit: jobScore.compound_fit > 0 ? jobScore.compound_fit : undefined,
       asymmetry_fit,
     }));
+  }
+
+  /**
+   * Tonight view: live fan-out across all sources, full 4-identity scoring,
+   * asymmetry + compound-fit filter, top 5 picks with identity score breakdown.
+   * No LLM query parsing — uses a preset broad query.
+   */
+  async searchTonight(): Promise<TonightResult> {
+    const TONIGHT_QUERY: SearchQuery = {
+      raw: "head of applied AI chief of staff director AI research policy operations strategy",
+      skills: ["AI", "LLM", "applied AI", "chief of staff", "operations", "strategy", "research", "policy", "program", "legal"],
+      remote: false,
+      maxResults: 200,
+      industries: [],
+      excludeCompanies: [],
+    };
+
+    const rootSpan = this.tracer.startTrace("conductor.tonight");
+    const startTime = performance.now();
+
+    try {
+      const sources = this.config.agents.sources as AgentSource[];
+      const agentResults = await this.fanOutSearch(TONIGHT_QUERY, sources, rootSpan, this.config.profile);
+
+      const allJobs = agentResults.flatMap((r) => r.jobs);
+      const deduped = this.deduplicate(allJobs);
+
+      const profile = this.config.profile;
+      const orgAdjacency = this.config.org_adjacency;
+      const identityWeights = this.feedbackStore.getWeightsMap();
+      const githubSignal = this.config.github_signal ?? [];
+
+      type Candidate = {
+        job: JobListing;
+        jobScore: ReturnType<typeof scoreJob>;
+        asymmetry_fit: "high" | "none";
+        githubBoostPts: number;
+      };
+
+      const candidates: Candidate[] = deduped.map((job) => {
+        const jobScore = scoreJob(job, TONIGHT_QUERY, profile, orgAdjacency, identityWeights, githubSignal);
+        const boost = computeGithubSignalBoost(job, jobScore.matchedIdentity, githubSignal);
+        const asymmetry_fit = flagAsymmetry(job, jobScore.compound_fit, boost?.pts ?? 0);
+        return { job, jobScore, asymmetry_fit, githubBoostPts: boost?.pts ?? 0 };
+      });
+
+      // Filter: asymmetry=high OR compound_fit>=2
+      let curated = candidates.filter(
+        (c) => c.asymmetry_fit === "high" || c.jobScore.compound_fit >= 2
+      );
+
+      // Sort: asymmetry first, then compound_fit desc, then score desc
+      const sortCandidates = (arr: Candidate[]): Candidate[] =>
+        arr.sort((a, b) => {
+          if (a.asymmetry_fit === "high" && b.asymmetry_fit !== "high") return -1;
+          if (b.asymmetry_fit === "high" && a.asymmetry_fit !== "high") return 1;
+          const cfDiff = b.jobScore.compound_fit - a.jobScore.compound_fit;
+          if (cfDiff !== 0) return cfDiff;
+          return b.jobScore.score - a.jobScore.score;
+        });
+
+      sortCandidates(curated);
+
+      const mode: TonightResult["mode"] =
+        curated.length > 0 ? "curated" : candidates.length > 0 ? "best_available" : "empty";
+
+      if (curated.length === 0 && candidates.length > 0) {
+        curated = [...candidates].sort((a, b) => b.jobScore.score - a.jobScore.score);
+      }
+
+      const picks: TonightPick[] = curated.slice(0, 5).map((c) => {
+        const allReasons = Object.values(c.jobScore.identityScores).flatMap((is) => is.reasons);
+        const github_signal_hits = allReasons
+          .filter((r) => r.startsWith("GitHub signal:"))
+          .map((r) => r.replace(/^GitHub signal:\s*/, "").replace(/\s*\(\+\d+\)$/, "").trim());
+
+        const annotatedJob: JobListing = {
+          ...c.job,
+          matchScore: c.jobScore.score,
+          matchedIdentity: c.jobScore.matchedIdentity,
+          identityReasons: Object.fromEntries(
+            Object.entries(c.jobScore.identityScores).map(([k, v]) => [k, v.reasons])
+          ),
+          compound_fit: c.jobScore.compound_fit > 0 ? c.jobScore.compound_fit : undefined,
+          asymmetry_fit: c.asymmetry_fit,
+        };
+
+        return {
+          job: annotatedJob,
+          identityScores: Object.fromEntries(
+            Object.entries(c.jobScore.identityScores).map(([k, v]) => [k, v.score])
+          ) as Record<string, number>,
+          github_signal_hits,
+        };
+      });
+
+      const durationMs = Math.round(performance.now() - startTime);
+      rootSpan.setAttribute("duration_ms", durationMs);
+      rootSpan.setAttribute("picks_count", picks.length);
+      rootSpan.setAttribute("mode", mode);
+      rootSpan.end();
+
+      return {
+        picks,
+        stats: {
+          rawResults: allJobs.length,
+          afterDedup: deduped.length,
+          agentsQueried: agentResults.length,
+          agentsSucceeded: agentResults.filter((r) => r.metadata.errors.length === 0).length,
+          durationMs,
+        },
+        mode,
+      };
+    } catch (error) {
+      rootSpan.setError(error instanceof Error ? error.message : String(error));
+      rootSpan.end();
+      throw error;
+    }
   }
 
   /**

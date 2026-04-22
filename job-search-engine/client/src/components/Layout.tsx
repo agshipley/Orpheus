@@ -2,6 +2,7 @@ import { NavLink } from "react-router-dom";
 import type { ReactNode } from "react";
 
 const NAV = [
+  { to: "/tonight",     label: "Tonight",     icon: TonightIcon },
   { to: "/search",      label: "Search",      icon: SearchIcon },
   { to: "/matches",     label: "Matches",     icon: MatchIcon  },
   { to: "/tracker",     label: "Tracker",     icon: KanbanIcon },
@@ -49,6 +50,14 @@ export default function Layout({ children }: { children: ReactNode }) {
 }
 
 // ─── Inline icons ─────────────────────────────────────────────────
+
+function TonightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+      <path d="M8 2L9.5 6H14L10.5 8.5L12 12.5L8 10L4 12.5L5.5 8.5L2 6H6.5L8 2Z" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function SearchIcon({ className }: { className?: string }) {
   return (

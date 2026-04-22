@@ -216,6 +216,32 @@ export interface SubmitFeedbackResponse {
   autoSummarized: boolean;
 }
 
+// ─── Tonight types ────────────────────────────────────────────────
+
+export interface TonightPick {
+  job: JobListing;
+  identityScores: Record<string, number>;
+  github_signal_hits: string[];
+  why_paragraph: string;
+}
+
+export interface TonightMeta {
+  date: string;
+  query: string;
+  agentsQueried: number;
+  agentsSucceeded: number;
+  rawResults: number;
+  afterDedup: number;
+  durationMs: number;
+  mode: "curated" | "best_available" | "empty";
+  corpus_note?: string;
+}
+
+export interface TonightResponse {
+  picks: TonightPick[];
+  meta: TonightMeta;
+}
+
 // ─── Tracker / Kanban types ───────────────────────────────────────
 
 export type KanbanStatus = "saved" | "applied" | "interview" | "offer" | "rejected";
