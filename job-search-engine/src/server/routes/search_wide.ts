@@ -17,19 +17,28 @@ export async function searchWideHandler(req: Request, res: Response): Promise<vo
   const config = loadConfig();
   const conductor = new Conductor(config);
 
+  let result;
   try {
-    const result = await conductor.searchWide(identityKey);
+    result = await conductor.searchWide(identityKey);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack : undefined;
+    console.error(`[search_wide] searchWide threw identity=${identityKey} error=${message}`, stack);
+    res.status(500).json({ error: "Wide search failed", detail: message });
+    return;
+  }
 
+  // Persist to job store — failures here are non-fatal, don't block the response.
+  try {
     const store = new JobStore(config.storage.dbPath);
     try {
       store.bulkUpsert(result.jobs);
     } finally {
       store.close();
     }
-
-    res.json(result);
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    res.status(500).json({ error: "Wide search failed", detail: message });
+    console.warn(`[search_wide] bulkUpsert failed (non-fatal): ${err instanceof Error ? err.message : String(err)}`);
   }
+
+  res.json(result);
 }

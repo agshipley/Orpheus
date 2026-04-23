@@ -28,7 +28,9 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, init);
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
+    const b = body as { error?: string; detail?: string };
+    const msg = [b.error, b.detail].filter(Boolean).join(": ");
+    throw new Error(msg || `HTTP ${res.status}`);
   }
   return res.json() as Promise<T>;
 }
